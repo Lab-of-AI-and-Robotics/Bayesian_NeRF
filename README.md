@@ -14,9 +14,11 @@ baseline code : https://github.com/yenchenlin/nerf-pytorch (바닐라 널프 깃
 
 
 파라미터 수정은 run_nerf.py에서의 아래 코드에서 가능 (lr과 beta_min(uncertainty의 최솟값)이 학습에 영향을 끼침)
+```
     parser.add_argument("--lrate", type=float, default=5e-5, # 4 
                         help='learning rate')
     parser.add_argument("--beta_min",   type=float, default=0.001) # 얘도 중요한 파라미터임, 건들여보자
     parser.add_argument("--w",   type=float, default=0.01) 
     parser.add_argument("--total_epoch",   type=int, default=300100, 
                         help='total_epoch')
+```
