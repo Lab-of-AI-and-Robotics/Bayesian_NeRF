@@ -12,6 +12,7 @@ baseline code : https://github.com/yenchenlin/nerf-pytorch (바닐라 널프 깃
 - baseline code에 버전 오류가 있어 baseline code의 load_llf.py 코드중 return imageio.imread(f, ignoregamma=True) 를 return imageio.imread(f)로 수정하였음.
 - def raw2outputs 함수에서 모든 loss를 위한 값들을 계산하며 그이외의 함수들은 값을 전달하는것뿐임.
 - 10-25일 : 모든 nan문제 해결(LR을 조절하면서 어디가 발산하는지 확인하고 특히 log를 조심! ) / but color값이 0 or 1으로 학습이 제대로 되지 않는 문제 남아있음
+- 10-25알 : nan문제 해결되지 않음. lr을 크게하면 그냥 어딘지도 모르게 nan이 전부 떠버림..
 
 ### 실행명령어
 실행할시 log 폴더에 결과가 저장됨

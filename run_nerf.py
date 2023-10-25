@@ -416,45 +416,32 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     ### a_i ~ Lognormal(U_ai, S_ai^2) # 조심해라, 아래의 S_ai is not mean S_ai^2 안되면 제곱으로 쳐라
 
     
-
-    temp_raw2alpha = lambda raw, dists, act_fn=F.relu: 1.-torch.exp(-act_fn(raw)*dists)
-    
+    ############### dist 일정하다 한것 ##################################
     for_s_j2 = raw2alpha(raw[...,4], 1) # 1-(uncert)
     for_s_j2_temp = torch.cumprod(torch.cat([torch.ones((for_s_j2 .shape[0], 1)), 1.-for_s_j2 + 1e-10], -1), -1)[:, :-1] # exp(-Sigma(uncert))
     s_j2_im = -torch.log(for_s_j2_temp + 1e-10) # 여기 더해줘야 inf안된다
     s_j2_i = s_j2_im + raw[...,4]
 
-    # if torch.isinf(for_s_j2).any() or torch.isnan(for_s_j2).any():
-    #     print("INF or NaN found in for_s_j2")
 
-    # print("s_j2_i shape: ", s_j2_i.shape)
-    # print("for_s_j2 val: ", torch.mean(for_s_j2_temp))
-    # print("for_s_j2 max: ", torch.max(for_s_j2_temp))
-    # print("for_s_j2 min: ", torch.min(for_s_j2_temp))
-
-    # print("s_j2_i val: ", torch.mean(s_j2_im))
-    # print("s_j2_i max: ", torch.max(s_j2_im))
-    # print("s_j2_i min: ", torch.min(s_j2_im))
-
-    Temp1 = (s_j2_im + s_j2_i) / (raw[...,4]) # 이를 통해 S_i의 값이 400 -> 40 대로 줄어들었음
+    Temp1 = (s_j2_im + s_j2_i) / (raw[...,4]) 
     # Temp1 = (S2_ti_p1 + S2_ti) / (S2_ti_p1 - S2_ti)
     Temp2 = torch.exp(U_ti_p1 + 0.5*S2_ti_p1) + torch.exp(U_ti + 0.5*S2_ti)
-
-    # print("temps up: ", torch.mean((s_j2_im + s_j2_i)))
-    # print("temps down: ", torch.mean((raw[...,4])))
-    # print("si_left: ", torch.mean(Temp1))
-    # print("si_right: ", torch.mean(Temp2))
-
-    ## original
-    # S_i = Temp1 * Temp2
-    # S_ai = (dists * raw[...,4])/ (2* torch.sqrt(s_j2_im + s_j2_i))
-    # U_ai = U_ti + (0.5 * S2_ti) - torch.log(raw[...,4]/2) + torch.log((torch.exp(-dists * raw[...,3] + 0.5*dists*dists*raw[...,4] ) * s_j2_i) + (s_j2_im)) - 0.5 * S_ai *S_ai
-    
 
     S_i = Temp1 * Temp2
     S_ai = (dists * raw[...,4])/ (2* torch.sqrt(s_j2_im + s_j2_i))
     U_ai = U_ti + (0.5 * S2_ti) - torch.log(raw[...,4]/2) + torch.log((torch.exp(-dists * raw[...,3] + 0.5*dists*dists*raw[...,4] ) * s_j2_i) + (s_j2_im)) - 0.5 * S_ai *S_ai
     # U_ai -inf 원인은 U_ti에서이다 
+    ############### dist 일정하다 한것 ##################################
+
+    ##### dist 없애지 않은코드 ##############
+    # Temp1 = (S2_ti_p1 + S2_ti)/(dists*dists*raw[...,4])
+    # Temp2 = torch.exp(U_ti_p1 + 0.5*S2_ti_p1) + torch.exp(U_ti + 0.5*S2_ti)
+
+    # S_i = Temp1 * Temp2
+    # S_ai = (dists*dists*raw[...,4])/(2 * torch.sqrt(S2_ti_p1 + S2_ti)) 
+    # U_ai = U_ti + (0.5*S2_ti) - torch.log(0.5*dists*dists*raw[...,4]) + torch.log(torch.exp(-(dists*raw[...,3]) + 0.5 * dists*dists*raw[...,4])*S2_ti_p1 + S2_ti) - 0.5 * S_ai *S_ai
+    # ##### dist 없애지 않은코드 ##############
+
 
     # print("1: ", torch.mean(U_ti))
     # print("2: ", torch.mean((0.5 * S2_ti)))
@@ -462,9 +449,9 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     # print("4: ", torch.mean(torch.log((torch.exp(-dists * raw[...,3] + 0.5*dists*dists*raw[...,4] ) * s_j2_i) + (s_j2_im)) ))
     # print("5: ", torch.mean(0.5 * S_ai *S_ai))
 
-    # print("1S_i: ", torch.mean(S_i))
-    # print("1S_ai: ", torch.mean(S_ai))
-    # print("1U_ai: ", torch.mean(U_ai))
+    print("1S_i: ", torch.mean(S_i))
+    print("1S_ai: ", torch.mean(S_ai))
+    print("1U_ai: ", torch.mean(U_ai))
 
     # print("2S_i: ", torch.max(S_i))
     # print("2S_ai: ", torch.max(S_ai))
@@ -491,12 +478,12 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     S_A = torch.log( (TempA)/(TempB * TempB) +1)
     U_A = torch.log(TempB) - 0.5*S_A
 
-    # print("1TempA: ", torch.mean(TempA))
-    # print("1TempB: ", torch.mean(TempB))
-    # print("1S_A: ", torch.mean(S_A))
-    # print("1U_A: ", torch.mean(U_A))
-    # print("1AR: ", torch.mean(Ar_map))
-    # print("1RGB: ", torch.mean(rgb_map))
+    print("1TempA: ", torch.mean(TempA))
+    print("1TempB: ", torch.mean(TempB))
+    print("1S_A: ", torch.mean(S_A))
+    print("1U_A: ", torch.mean(U_A))
+    print("1AR: ", torch.mean(Ar_map))
+    print("1RGB: ", torch.mean(rgb_map))
 
 
     # print("2S_A: ", torch.max(S_A))
@@ -790,7 +777,7 @@ def config_parser():
     ########################################################################################################   
     # parser.add_argument("--lrate", type=float, default=5e-4, # 원래 4 
     #                     help='learning rate')
-    parser.add_argument("--lrate", type=float, default=5e-5, # 원래 4 
+    parser.add_argument("--lrate", type=float, default=5e-4, # 원래 4 
                         help='learning rate')
     parser.add_argument("--beta_min",   type=float, default=0.001) # 얘도 중요한 파라미터임, 건들여보자
     parser.add_argument("--w",   type=float, default=0.01) 
