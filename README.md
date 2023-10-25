@@ -11,7 +11,7 @@ baseline code : https://github.com/yenchenlin/nerf-pytorch (바닐라 널프 깃
 - run_nerf.py 코드에서도 이미지를 저장할때 수치적인 값들과 UNCERT IMAGE도 저장하도록 render_path 함수에 코드들 추가하였음
 - baseline code에 버전 오류가 있어 baseline code의 load_llf.py 코드중 return imageio.imread(f, ignoregamma=True) 를 return imageio.imread(f)로 수정하였음.
 - def raw2outputs 함수에서 모든 loss를 위한 값들을 계산하며 그이외의 함수들은 값을 전달하는것뿐임.
-
+- 10-25일 : nan문제 해결 / but color값이 0으로 가까워지는 문제가 남아있음
 
 ### 실행명령어
 실행할시 log 폴더에 결과가 저장됨

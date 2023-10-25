@@ -354,6 +354,7 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     dists = dists * torch.norm(rays_d[...,None,:], dim=-1)
 
     rgb = torch.sigmoid(raw[...,:3])  # [N_rays, N_samples, 3]
+
     noise = 0.
     if raw_noise_std > 0.:
         noise = torch.randn(raw[...,3].shape) * raw_noise_std
@@ -373,15 +374,16 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     
     #############################################################################
     T_i = torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1)), 1.-alpha + 1e-10], -1), -1)[:, :-1] # T_i =  exp{-Sigma (dist *  mean)}
-    for_T_uncert = raw2alpha(raw[...,4], dists * dists) # 1-exp(dist*dist*uncert)
-    for_S2_ti = torch.cumprod(torch.cat([torch.ones((for_T_uncert .shape[0], 1)), 1.-for_T_uncert + 1e-10], -1), -1)[:, :-1] # exp{-Sigma (dist^2 * uncert)}
+    for_T_uncert = raw2alpha(raw[...,4], dists * dists) # 1-exp(dist*dist*uncert) uncert = sigma^2
+    for_S2_ti = torch.cumprod(torch.cat([torch.ones((for_T_uncert.shape[0], 1)), 1.-for_T_uncert + 1e-10], -1), -1)[:, :-1] # exp{-Sigma (dist^2 * uncert)}
 
-    T_i_p1 = T_i * torch.exp(-1 * F.relu(raw[...,3])*dists)
+    # T_i_p1 = T_i * torch.exp(-1 * F.relu(raw[...,3])*dists) # 여기부분 + 를 원래는 *로 했었음. 10-25일 체크
 
     ### T_i ~ Lognormal(U_ti, S2_ti) ## T_{i+1} < T_i 
-    U_ti = torch.log(T_i)
-    S2_ti = -torch.log(for_S2_ti) # -1 안붙을수도? 해서 우선 적용함.
-    U_ti_p1 = torch.log(T_i_p1)
+    U_ti = torch.log(T_i + 1e-10) # U_ai가 inf인 이유로 1e-10해줌
+    S2_ti = -torch.log(for_S2_ti) 
+    # U_ti_p1 = torch.log(T_i_p1)
+    U_ti_p1 = U_ti - dists*raw[...,3] # - dist * density mean
     S2_ti_p1 = S2_ti + dists*dists*raw[...,4] # + dist*dist * density_uncert^2
 
 
@@ -413,26 +415,56 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
 
     ### a_i ~ Lognormal(U_ai, S_ai^2) # 조심해라, 아래의 S_ai is not mean S_ai^2 안되면 제곱으로 쳐라
 
-    for_s_j2 = raw2alpha(raw[...,4], 1) # 1-exp(uncert)
+    
+
+    temp_raw2alpha = lambda raw, dists, act_fn=F.relu: 1.-torch.exp(-act_fn(raw)*dists)
+    
+    for_s_j2 = raw2alpha(raw[...,4], 1) # 1-(uncert)
     for_s_j2_temp = torch.cumprod(torch.cat([torch.ones((for_s_j2 .shape[0], 1)), 1.-for_s_j2 + 1e-10], -1), -1)[:, :-1] # exp(-Sigma(uncert))
-    s_j2_im = -torch.log(for_s_j2_temp)
+    s_j2_im = -torch.log(for_s_j2_temp + 1e-10) # 여기 더해줘야 inf안된다
     s_j2_i = s_j2_im + raw[...,4]
 
+    # if torch.isinf(for_s_j2).any() or torch.isnan(for_s_j2).any():
+    #     print("INF or NaN found in for_s_j2")
 
+    # print("s_j2_i shape: ", s_j2_i.shape)
+    # print("for_s_j2 val: ", torch.mean(for_s_j2_temp))
+    # print("for_s_j2 max: ", torch.max(for_s_j2_temp))
+    # print("for_s_j2 min: ", torch.min(for_s_j2_temp))
 
+    # print("s_j2_i val: ", torch.mean(s_j2_im))
+    # print("s_j2_i max: ", torch.max(s_j2_im))
+    # print("s_j2_i min: ", torch.min(s_j2_im))
 
     Temp1 = (s_j2_im + s_j2_i) / (raw[...,4]) # 이를 통해 S_i의 값이 400 -> 40 대로 줄어들었음
     # Temp1 = (S2_ti_p1 + S2_ti) / (S2_ti_p1 - S2_ti)
     Temp2 = torch.exp(U_ti_p1 + 0.5*S2_ti_p1) + torch.exp(U_ti + 0.5*S2_ti)
 
+    # print("temps up: ", torch.mean((s_j2_im + s_j2_i)))
+    # print("temps down: ", torch.mean((raw[...,4])))
+    print("si_left: ", torch.mean(Temp1))
+    print("si_right: ", torch.mean(Temp2))
+
+    ## original
+    # S_i = Temp1 * Temp2
+    # S_ai = (dists * raw[...,4])/ (2* torch.sqrt(s_j2_im + s_j2_i))
+    # U_ai = U_ti + (0.5 * S2_ti) - torch.log(raw[...,4]/2) + torch.log((torch.exp(-dists * raw[...,3] + 0.5*dists*dists*raw[...,4] ) * s_j2_i) + (s_j2_im)) - 0.5 * S_ai *S_ai
+    
 
     S_i = Temp1 * Temp2
     S_ai = (dists * raw[...,4])/ (2* torch.sqrt(s_j2_im + s_j2_i))
     U_ai = U_ti + (0.5 * S2_ti) - torch.log(raw[...,4]/2) + torch.log((torch.exp(-dists * raw[...,3] + 0.5*dists*dists*raw[...,4] ) * s_j2_i) + (s_j2_im)) - 0.5 * S_ai *S_ai
-    
-    # print("1S_i: ", torch.mean(S_i))
-    # print("1S_ai: ", torch.mean(S_ai))
-    # print("1U_ai: ", torch.mean(U_ai))
+    # U_ai -inf 원인은 U_ti에서이다 
+
+    print("1: ", torch.mean(U_ti))
+    print("2: ", torch.mean((0.5 * S2_ti)))
+    print("3: ", torch.mean(torch.log(raw[...,4]/2)))
+    print("4: ", torch.mean(torch.log((torch.exp(-dists * raw[...,3] + 0.5*dists*dists*raw[...,4] ) * s_j2_i) + (s_j2_im)) ))
+    print("5: ", torch.mean(0.5 * S_ai *S_ai))
+
+    print("1S_i: ", torch.mean(S_i))
+    print("1S_ai: ", torch.mean(S_ai))
+    print("1U_ai: ", torch.mean(U_ai))
 
     # print("2S_i: ", torch.max(S_i))
     # print("2S_ai: ", torch.max(S_ai))
@@ -750,13 +782,15 @@ def config_parser():
                         help='frequency of tensorboard image logging')
     parser.add_argument("--i_weights", type=int, default=20000000, 
                         help='frequency of weight ckpt saving')
-    parser.add_argument("--i_testset", type=int, default=25000, 
+    parser.add_argument("--i_testset", type=int, default=2000, 
                         help='frequency of testset saving')
     parser.add_argument("--i_video",   type=int, default=100000, 
                         help='frequency of render_poses video saving')
 
     ########################################################################################################   
-    parser.add_argument("--lrate", type=float, default=5e-6, # 4 
+    # parser.add_argument("--lrate", type=float, default=5e-4, # 원래 4 
+    #                     help='learning rate')
+    parser.add_argument("--lrate", type=float, default=5e-5, # 원래 4 
                         help='learning rate')
     parser.add_argument("--beta_min",   type=float, default=0.001) # 얘도 중요한 파라미터임, 건들여보자
     parser.add_argument("--w",   type=float, default=0.01) 
@@ -1020,29 +1054,28 @@ def train():
 
 
         optimizer.zero_grad()
-        # img_loss = loss_mintest(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
-        # img_loss = img2mse(rgb, target_s)
+
         print("rgb: ", torch.mean(rgb))
         print("lam: ", torch.mean(lam_map))
         print("S_A: ", torch.mean(S_A))
         print("U_A: ", torch.mean(U_A))
-        # print(": ", torch.mean())
-        print("val 1: ", torch.mean(torch.log(lam_map - target_s)))
-        print("val 2: ", 0.5 * torch.mean(torch.log(S_A + 1e-8)))
-        print("val 3: ", 0.5* torch.mean((torch.log(lam_map-target_s)-U_A)**2/(S_A)))
+        print("target_s: ", torch.mean(target_s))
 
-        print("test1: ", torch.mean((torch.log(lam_map-target_s)-U_A)**2))
-        print("test2: ", torch.mean(S_A))
-        print("test3: ", torch.mean(torch.log(lam_map-target_s)))
+        print("val 1: ", torch.mean(torch.log(torch.abs(lam_map - target_s) + 1e-10)))
+        print("val 2: ", torch.mean(0.5 * torch.log(S_A)))
+        print("val 3: ", torch.mean((torch.log(torch.abs(lam_map - target_s) + 1e-10)-U_A)*(torch.log(torch.abs(lam_map - target_s) + 1e-10)-U_A)/(2*S_A)))
+        
+
         # print("total loss: ", img_loss)
         
         # img_loss = img2mse_uncert_alpha(rgb, target_s, uncert, alpha, args.w)
         #############################################################################################################
-        if i < 40000:
+        if i < 1000:
             img_loss = img2mse(rgb, target_s)
  
         else:
-            img_loss = loss_mintest(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
+            img_loss = loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
+            #img_loss = loss_mintest(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
         #############################################################################################################
         trans = extras['raw'][...,-1]
 
