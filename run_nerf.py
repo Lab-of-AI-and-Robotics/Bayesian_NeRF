@@ -442,8 +442,8 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
 
     # print("temps up: ", torch.mean((s_j2_im + s_j2_i)))
     # print("temps down: ", torch.mean((raw[...,4])))
-    print("si_left: ", torch.mean(Temp1))
-    print("si_right: ", torch.mean(Temp2))
+    # print("si_left: ", torch.mean(Temp1))
+    # print("si_right: ", torch.mean(Temp2))
 
     ## original
     # S_i = Temp1 * Temp2
@@ -456,15 +456,15 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     U_ai = U_ti + (0.5 * S2_ti) - torch.log(raw[...,4]/2) + torch.log((torch.exp(-dists * raw[...,3] + 0.5*dists*dists*raw[...,4] ) * s_j2_i) + (s_j2_im)) - 0.5 * S_ai *S_ai
     # U_ai -inf 원인은 U_ti에서이다 
 
-    print("1: ", torch.mean(U_ti))
-    print("2: ", torch.mean((0.5 * S2_ti)))
-    print("3: ", torch.mean(torch.log(raw[...,4]/2)))
-    print("4: ", torch.mean(torch.log((torch.exp(-dists * raw[...,3] + 0.5*dists*dists*raw[...,4] ) * s_j2_i) + (s_j2_im)) ))
-    print("5: ", torch.mean(0.5 * S_ai *S_ai))
+    # print("1: ", torch.mean(U_ti))
+    # print("2: ", torch.mean((0.5 * S2_ti)))
+    # print("3: ", torch.mean(torch.log(raw[...,4]/2)))
+    # print("4: ", torch.mean(torch.log((torch.exp(-dists * raw[...,3] + 0.5*dists*dists*raw[...,4] ) * s_j2_i) + (s_j2_im)) ))
+    # print("5: ", torch.mean(0.5 * S_ai *S_ai))
 
-    print("1S_i: ", torch.mean(S_i))
-    print("1S_ai: ", torch.mean(S_ai))
-    print("1U_ai: ", torch.mean(U_ai))
+    # print("1S_i: ", torch.mean(S_i))
+    # print("1S_ai: ", torch.mean(S_ai))
+    # print("1U_ai: ", torch.mean(U_ai))
 
     # print("2S_i: ", torch.max(S_i))
     # print("2S_ai: ", torch.max(S_ai))
@@ -1070,7 +1070,7 @@ def train():
         
         # img_loss = img2mse_uncert_alpha(rgb, target_s, uncert, alpha, args.w)
         #############################################################################################################
-        if i < 1000:
+        if i < 500:
             img_loss = img2mse(rgb, target_s)
  
         else:
