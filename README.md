@@ -1,6 +1,26 @@
 # uncertainty_nerf
 For implementation details, see ./nerf_uncertainty.pdf
 
+*correct all the NaN issues
+EX):
+uncertainty:  tensor(0.6102, grad_fn=<MeanBackward0>)
+S_ai:  tensor(0.0635, grad_fn=<MeanBackward0>)
+U_ai:  tensor(-334.3341, grad_fn=<MeanBackward0>)
+1TempA:  tensor(0.0015, grad_fn=<MeanBackward0>)
+1TempB:  tensor(89282.0625, grad_fn=<MeanBackward0>)
+rgb:  tensor(0.9879, grad_fn=<MeanBackward0>)
+lam:  tensor(83754.0938, grad_fn=<MeanBackward0>)
+S_A:  tensor(1.0000e-06, grad_fn=<MaxBackward1>)
+U_A:  tensor(10.4156, grad_fn=<MeanBackward0>)
+target_s:  tensor(0.5229)
+val 1:  tensor(10.3908, grad_fn=<MeanBackward0>)
+val 2:  tensor(-6.9073, grad_fn=<MeanBackward0>)
+val 3:  tensor(413.2224, grad_fn=<MeanBackward0>)
+val 4:  tensor(0., grad_fn=<MeanBackward0>)
+count number that lamda - true color < 0 :  59
+iteration :  11617
+
+
 baseline code : https://github.com/yenchenlin/nerf-pytorch (바닐라 널프 깃헙코드 주소)
 
 
