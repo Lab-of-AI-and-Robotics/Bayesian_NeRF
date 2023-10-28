@@ -2,7 +2,7 @@
 For implementation details, see ./nerf_uncertainty.pdf
 
 *correct all the NaN issues
-'''bash
+```
 EX):
 uncertainty:  tensor(0.6102, grad_fn=<MeanBackward0>)
 S_ai:  tensor(0.0635, grad_fn=<MeanBackward0>)
@@ -20,7 +20,7 @@ val 3:  tensor(413.2224, grad_fn=<MeanBackward0>)
 val 4:  tensor(0., grad_fn=<MeanBackward0>)
 count number that lamda - true color < 0 :  59
 iteration :  11617
-'''
+```
 
 baseline code : https://github.com/yenchenlin/nerf-pytorch (바닐라 널프 깃헙코드 주소)
 
