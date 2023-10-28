@@ -376,114 +376,55 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     # raw[...,4] : uncertainty of density   
     # raw[...,3] : density mean value 
     # raw[...,:3] : color mean value 
-
-    T_i = torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1)), 1.-alpha + 1e-10], -1), -1)[:, :-1] # T_i =  exp{-Sigma (dist *  mean)}
-    for_T_uncert = raw2alpha(raw[...,4], dists * dists) # 1-exp(-dist*dist*uncert) # uncert = sigma^2 of density
-    for_S2_ti = torch.cumprod(torch.cat([torch.ones((for_T_uncert.shape[0], 1)), 1.-for_T_uncert + 1e-10], -1), -1)[:, :-1] # exp{-Sigma (dist^2 * uncert)}
-
- 
-    ### T_i ~ Lognormal(U_ti, S2_ti) ## T_{i+1} < T_i 
-    U_ti = torch.log(T_i + 1e-10) # -Sigma (dist *  mean) / #U_ai가 inf인 이유로 1e-10해줌
-    S2_ti = -torch.log(for_S2_ti) # Sigma (dist^2 * uncert)
-    # U_ti_p1 = torch.log(T_i_p1)
-    U_ti_p1 = U_ti - dists*raw[...,3] # - dist * density mean
-    S2_ti_p1 = S2_ti + dists*dists*raw[...,4] # + dist*dist * density_uncert
-
-
     
-    # print("test0 rgb: ", torch.mean(raw[..., 0:3]))
-    # print("test0 den: ", torch.mean(raw[...,3]))
-    print("test0 uncert: ", torch.mean(raw[...,4]))
-
-    # print("test0 dist1: ", torch.mean(dists))
-    # print("test0 dist2: ", torch.min(dists))
-    # print("test0 dist3: ", torch.max(dists))
-
-    # print("test0 raw shape: ", raw[...,4].shape)
-    print("ti mean: ", torch.mean(T_i))
-    print("sigma_i: ", torch.mean(S2_ti))
-    #print("sigma_i+1: ", torch.mean(S2_ti_p1))
-    print("mean_i: ", torch.mean(U_ti))
-    #print("mean_i+1: ", torch.mean(U_ti_p1))
-
-    # print("2sigma_i: ", torch.min(S2_ti))
-    # print("2sigma_i+1: ", torch.min(S2_ti_p1))
-    # print("2mean_i: ", torch.min(U_ti))
-    # print("2mean_i+1: ", torch.min(U_ti_p1))
-
-    # print("3sigma_i: ", torch.max(S2_ti))
-    # print("3sigma_i+1: ", torch.max(S2_ti_p1))
-    # print("3mean_i: ", torch.max(U_ti))
-    # print("3mean_i+1: ", torch.max(U_ti_p1))
-
-    ### a_i ~ Lognormal(U_ai, S_ai^2) # 조심해라
+    distXdensity = dists * F.relu(raw[...,3])
+    distXdensity_sum = torch.cat([torch.zeros((distXdensity.shape[0], 1)), -distXdensity], axis=-1)
+    distXdensity_sum = distXdensity_sum.cumsum(axis=-1)
+    distXdensity_sum[:, 0] = 0. # init mu_T1
+    mu_Ti = distXdensity_sum[:, :-1]
+    mu_Tip1 = distXdensity_sum[:, 1:]
+    Ti = torch.exp(mu_Ti)
     
-    ############### dist 일정하다 한것 ##################################
-    # for_s_j2 = raw2alpha(raw[...,4], 1) # 1-(uncert)
-    # for_s_j2_temp = torch.cumprod(torch.cat([torch.ones((for_s_j2 .shape[0], 1)), 1.-for_s_j2 + 1e-10], -1), -1)[:, :-1] # exp(-Sigma(uncert))
-    # s_j2_im = -torch.log(for_s_j2_temp + 1e-10) # 여기 더해줘야 inf안된다
-    # s_j2_i = s_j2_im + raw[...,4]
-
-
-    # Temp1 = (s_j2_im + s_j2_i) / (raw[...,4]) 
-    # # Temp1 = (S2_ti_p1 + S2_ti) / (S2_ti_p1 - S2_ti)
-    # Temp2 = torch.exp(U_ti_p1 + 0.5*S2_ti_p1) + torch.exp(U_ti + 0.5*S2_ti)
-
-    # S_i = Temp1 * Temp2
-    # S_ai = (dists * raw[...,4])/ (2* torch.sqrt(s_j2_im + s_j2_i))
-    # U_ai = U_ti + (0.5 * S2_ti) - torch.log(raw[...,4]/2 + 1e-10) + torch.log((torch.exp(-dists * raw[...,3] + 0.5*dists*dists*raw[...,4] ) * s_j2_i) + (s_j2_im) + 1e-10) - 0.5 * S_ai *S_ai
-    # # U_ai -inf 원인은 U_ti에서이다 # LR큰 경우에도 해서 RAW[]/2도 손봐줬음
-    ############### dist 일정하다 한것 ##################################
+    dist2Xuncertainty = dists* dists* raw[...,4] # raw[..., 4] = var > 0.01
+    dist2Xuncertainty_sum = torch.cat([torch.zeros((dist2Xuncertainty.shape[0], 1)), dist2Xuncertainty], axis=-1)
+    dist2Xuncertainty_sum = dist2Xuncertainty_sum.cumsum(axis=-1)
+    dist2Xuncertainty_sum[:, 0] = 0.01 #init sigma2_T1
+    sigma2_Ti = dist2Xuncertainty_sum[:, :-1]
+    sigma2_Tip1 = dist2Xuncertainty_sum[:, 1:]
+    print("uncertainty: ", torch.mean(dist2Xuncertainty))
+    
+    U_ti = mu_Ti
+    U_ti_p1 = mu_Tip1
+    S2_ti = sigma2_Ti
+    S2_ti_p1 = sigma2_Tip1
 
     ##### dist 없애지 않은코드 ##############
-    Temp1 = (S2_ti_p1 + S2_ti)/(dists*dists*raw[...,4]+1e-10) # left term of si
+    corr = dist2Xuncertainty_sum[:,:-1] / torch.sqrt( dist2Xuncertainty_sum[:,:-1]**2 + dist2Xuncertainty_sum[:,:-1] * dist2Xuncertainty )
+    Temp1 = (S2_ti_p1 + S2_ti - 2.*corr*torch.sqrt(S2_ti_p1 * S2_ti)) /(dists*dists*raw[...,4]+1e-9) # left term of si
     Temp2 = torch.exp(U_ti_p1 + 0.5*S2_ti_p1) + torch.exp(U_ti + 0.5*S2_ti) # right term of si
 
     S_i = Temp1 * Temp2 # s_{i}
-    S_ai = (dists*dists*raw[...,4])/(2 * torch.sqrt(S2_ti_p1 + S2_ti)) # sigma_{alpha_i}
-    U_ai = U_ti + (0.5*S2_ti) - torch.log(0.5*dists*dists*raw[...,4] + 1e-10) + torch.log(torch.exp(-(dists*raw[...,3]) + 0.5 * dists*dists*raw[...,4])*S2_ti_p1 + S2_ti + 1e-8) - 0.5 * S_ai *S_ai
+    S_ai = (dists*dists*raw[...,4])/(2 * torch.sqrt(S2_ti_p1 + S2_ti) + 1e-9) # sigma_{alpha_i}
+    print("S_ai: ", torch.mean(S_ai))
+    U_ai = U_ti + (0.5*S2_ti) - (2*torch.log(dists+1e-9) + torch.log(0.5*raw[...,4] + 1e-9))
+    U_ai += torch.log(torch.exp(-dists*F.relu(raw[...,3]) + 0.5 * dists*dists*raw[...,4])*S2_ti_p1 + S2_ti + 1e-9) - 0.5 * S_ai *S_ai
+    print("U_ai: ", torch.mean(U_ai))
     ##### dist 없애지 않은코드 ##############
 
-
-    print("temp1: ", torch.mean(Temp1))
-    print("temp2: ", torch.mean(Temp2))
-    print("S_i: ", torch.mean(S_i))
-    print("S_ai: ", torch.mean(S_ai))
-    print("U_ai: ", torch.mean(U_ai))
-
-    # print("1: ", torch.mean(U_ti))
-    # print("2: ", torch.mean((0.5 * S2_ti)))
-    # print("3: ", torch.mean(torch.log(0.5*dists*dists*raw[...,4] + 1e-10)))
-    # print("4: ", torch.mean(torch.log(torch.exp(-(dists*raw[...,3]) + 0.5 * dists*dists*raw[...,4])*S2_ti_p1 + S2_ti)))
-    # print("5: ", torch.mean(0.5 * S_ai *S_ai))
-
-
-    # print("2S_i: ", torch.max(S_i))
-    # print("2S_ai: ", torch.max(S_ai))
-    # print("2U_ai: ", torch.max(U_ai))
-
-    # print("3S_i: ", torch.min(S_i))
-    # print("3S_ai: ", torch.min(S_ai))
-    # print("3U_ai: ", torch.min(U_ai))
-
-
-    ### S_i 정규화
-    # min_val = torch.min(S_i)
-    # max_val = torch.max(S_i)
-    # S_i = (S_i - min_val) / (max_val - min_val)
-
-
     ### lamda - C = A(r)
-    S_ai_copy = S_ai.unsqueeze(-1).expand(-1, -1, 3) # for feeting tensor shape
+    S_ai_copy = S_ai.unsqueeze(-1).expand(-1, -1, 3) # fitting tensor shape
     U_ai_copy = U_ai.unsqueeze(-1).expand(-1, -1, 3)
     
     Ar_map = torch.sum( (S_i[...,None] - weights[...,None]) * rgb,-2)
     # TempA = torch.sum( torch.exp(2 * (U_ai_copy + torch.log(rgb+1e-10)) + S_ai_copy * S_ai_copy) * torch.exp(S_ai_copy * S_ai_copy -1), -2 )
     # TempB = torch.sum( torch.exp(U_ai_copy + torch.log(rgb+1e-10) + 0.5 * S_ai_copy * S_ai_copy) ,-2)
-    TempA = torch.sum( rgb * rgb * torch.exp(2 * (U_ai_copy) + S_ai_copy * S_ai_copy) * torch.exp(S_ai_copy * S_ai_copy -1), -2 ) # rgb 값 밖으로 꺼냄
+    TempA = torch.sum( rgb * rgb * torch.exp(2 * U_ai_copy + S_ai_copy * S_ai_copy) * (torch.exp(S_ai_copy * S_ai_copy) -1), -2 ) # rgb 값 밖으로 꺼냄
     TempB = torch.sum( rgb * torch.exp(U_ai_copy + 0.5 * S_ai_copy * S_ai_copy) ,-2)
-    S_A = torch.log( (TempA)/(TempB * TempB) +1)
-    U_A = torch.log(TempB + 1e-10) - 0.5*S_A
+    S2_A = torch.log( (TempA)/(TempB * TempB + 1e-9) +1)
+    # S2_A = torch.log(TempA + TempB*TempB + 1e-9) - 2*torch.log(torch.abs(TempB) + 1e-9)
+    U_A = torch.log(TempB + 1e-9) - 0.5*S2_A
+    bias_S2_A = 1e-6
+    S2_A = S2_A + bias_S2_A
 
     # if torch.isnan(torch.mean(raw[...,4])):
     #     print("Mean value is NaN. Exiting the program.")
@@ -521,7 +462,7 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     #####################################################################################################################
     #return rgb_map, disp_map, acc_map, weights, depth_map
     # return rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, F.relu(raw[...,3] + noise).mean(-1) # last term is alpha map
-    return rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, F.relu(raw[...,3] + noise).mean(-1), lam_map, S_A, U_A 
+    return rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, F.relu(raw[...,3] + noise).mean(-1), lam_map, S2_A, U_A 
     #####################################################################################################################
 
 def render_rays(ray_batch,
@@ -1056,29 +997,38 @@ def train():
         # this value is important term or used term for loss
         print("rgb: ", torch.mean(rgb))
         print("lam: ", torch.mean(lam_map))
-        print("S_A: ", torch.mean(S_A))
+        print("S_A: ", torch.max(S_A))
         print("U_A: ", torch.mean(U_A))
         print("target_s: ", torch.mean(target_s))
 
         # val 1~4 mean is term of loss element
         print("val 1: ", torch.mean(torch.log(torch.abs(lam_map - target_s) + 1e-10)))
-        print("val 2: ", torch.mean(0.5 * torch.log(S_A)))
-        print("val 3: ", torch.mean((torch.log(torch.abs(lam_map - target_s) + 1e-10)-U_A)*(torch.log(torch.abs(lam_map - target_s) + 1e-10)-U_A)/(2*S_A)))
+        print("val 2: ", torch.mean(0.5 * torch.log(S_A + 1e-9)))
+        print("val 3: ", torch.mean( (torch.log(torch.abs(lam_map - target_s) + 1e-9) - U_A)**2/(2*S_A + 1e-9)))
         print("val 4: ", torch.mean(1024 * F.relu(target_s - lam_map)))
         
         # print("check minus min:  ", torch.min((lam_map - target_s)))
         # print("check minus mean: ", torch.mean((lam_map - target_s)))
         print("count number that lamda - true color < 0 : ", minjae_test_num)
+        print("iteration : ", i)
 
         if torch.min(lam_map - target_s) < 0:
             minjae_test_num += 1
 
         #############################################################################################################
-        if i < 500: # pretraining
+        if i < 100: # pretraining
             img_loss = img2mse(rgb, target_s)
  
+        elif i<1000:
+            img_loss = 1e+4 * img2mse(rgb, target_s) + 1e-8 * loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
+        elif i<2000:
+            img_loss = 1e+4 * img2mse(rgb, target_s) + 1e-6 * loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
+        elif i<3000:
+            img_loss = 1e+4 * img2mse(rgb, target_s) + 1e-4 * loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
+        elif i<4000:
+            img_loss = 1e+4 * img2mse(rgb, target_s) + loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
         else:
-            img_loss = loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
+            img_loss = 1e+2 * img2mse(rgb, target_s) + loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
         #############################################################################################################
         trans = extras['raw'][...,-1]
 

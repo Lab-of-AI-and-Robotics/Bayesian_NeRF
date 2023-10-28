@@ -10,9 +10,11 @@ from external.pohsun_ssim import pytorch_ssim
 import lpips
 
 
-loss_uncert3 = lambda rgb, lam, true, mu_a, sigma_a2, alpha, w : torch.mean(torch.log(torch.abs(lam-true) + 1e-9)) + \
-                torch.mean(0.5 * torch.log(sigma_a2)) + torch.mean((torch.log(torch.abs(lam-true) + 1e-9)-mu_a) *(torch.log(torch.abs(lam-true) + 1e-9)-mu_a)/(2 * sigma_a2)) \
-                + 1024 * torch.mean(F.relu(true - lam))
+loss_uncert3 = lambda rgb, lam, true, mu_a, sigma_a2, alpha, w :\
+		torch.mean(torch.log(torch.abs(lam-true) + 1e-9)) + \
+                torch.mean(0.5 * torch.log(sigma_a2 + 1e-9)) + \
+                torch.mean( (torch.log(torch.abs(lam-true) + 1e-9) - mu_a) **2 /(2 * sigma_a2 + 1e-9)) \
+                + 1024 * torch.mean(torch.relu(true - lam))
 
 # loss_uncert3 = lambda rgb, lam, true, mu_a, sigma_a2, alpha, w : torch.mean(torch.log(lam-true + 1e-9)) + \
 #                 torch.mean(0.5 * torch.log(sigma_a2)) + torch.mean((torch.log(lam-true + 1e-9)-mu_a) *(torch.log(lam-true + 1e-9)-mu_a)/(2 * sigma_a2))
