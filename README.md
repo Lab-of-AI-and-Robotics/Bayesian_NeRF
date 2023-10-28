@@ -3,7 +3,7 @@ For implementation details, see ./nerf_uncertainty.pdf
 
 *correct all the NaN issues
 ```
-EX):
+terminal output Example):
 uncertainty:  tensor(0.6102, grad_fn=<MeanBackward0>)
 S_ai:  tensor(0.0635, grad_fn=<MeanBackward0>)
 U_ai:  tensor(-334.3341, grad_fn=<MeanBackward0>)
