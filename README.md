@@ -1,9 +1,11 @@
 # uncertainty_nerf
+Please interpret all the following explanations into English
+
 For implementation details, see ./nerf_uncertainty.pdf
 
-Correct all NaN issues
+*Correct all NaN issues
 
-terminal output Example)
+*terminal output Example)
 ```
 uncertainty:  tensor(0.0196, grad_fn=<MeanBackward0>)
 S_ai:  tensor(0.3470, grad_fn=<MeanBackward0>)
