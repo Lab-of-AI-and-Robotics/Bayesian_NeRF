@@ -3,6 +3,8 @@ By Minjae Lee, UNIST
 
 baseline code : https://github.com/yenchenlin/nerf-pytorch (바닐라 널프 깃헙코드 주소)
 
+For implementation details, see ./nerf_uncertainty.pdf
+
 
 
 - def raw2outputs 함수에서 모든 loss를 위한 값들을 계산하며 그이외의 함수들은 값을 전달하는것뿐임. (구현시 이 함수가 가장 중요!)
