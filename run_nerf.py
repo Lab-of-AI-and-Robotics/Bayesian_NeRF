@@ -389,6 +389,7 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     dist2Xuncertainty_sum = torch.cat([torch.zeros((dist2Xuncertainty.shape[0], 1)), dist2Xuncertainty], axis=-1)
     dist2Xuncertainty_sum = dist2Xuncertainty_sum.cumsum(axis=-1)
     dist2Xuncertainty_sum[:, 0] = 0.01 #init sigma2_T1
+    dist2Xuncertainty_sum += 1e-9
     sigma2_Ti = dist2Xuncertainty_sum[:, :-1]
     sigma2_Tip1 = dist2Xuncertainty_sum[:, 1:]
     print("uncertainty: ", torch.mean(dist2Xuncertainty))
@@ -399,12 +400,16 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     S2_ti_p1 = sigma2_Tip1
 
     ##### dist 없애지 않은코드 ##############
-    corr = dist2Xuncertainty_sum[:,:-1] / torch.sqrt( dist2Xuncertainty_sum[:,:-1]**2 + dist2Xuncertainty_sum[:,:-1] * dist2Xuncertainty )
-    Temp1 = (S2_ti_p1 + S2_ti - 2.*corr*torch.sqrt(S2_ti_p1 * S2_ti)) /(dists*dists*raw[...,4]+1e-9) # left term of si
+    # corr = dist2Xuncertainty_sum[:,:-1] / torch.sqrt( dist2Xuncertainty_sum[:,:-1]**2 + dist2Xuncertainty_sum[:,:-1] * dist2Xuncertainty )
+    # corr = torch.clamp(corr, min=0, max=1.-1e-9)
+    # sigma2_m = S2_ti_p1 + S2_ti - 2.*corr*torch.sqrt(S2_ti_p1 * S2_ti)
+    sigma2_m = torch.square(torch.sqrt(S2_ti_p1) - torch.sqrt(S2_ti))
+    sigma2_m = torch.clamp(sigma2_m, min=1e-9, max=None)
+    Temp1 = sigma2_m /(dists*dists*raw[...,4]+1e-9) # left term of si
     Temp2 = torch.exp(U_ti_p1 + 0.5*S2_ti_p1) + torch.exp(U_ti + 0.5*S2_ti) # right term of si
 
     S_i = Temp1 * Temp2 # s_{i}
-    S_ai = (dists*dists*raw[...,4])/(2 * torch.sqrt(S2_ti_p1 + S2_ti) + 1e-9) # sigma_{alpha_i}
+    S_ai = (dists*dists*raw[...,4])/(2 * torch.sqrt(sigma2_m) + 1e-9) # sigma_{alpha_i}
     print("S_ai: ", torch.mean(S_ai))
     U_ai = U_ti + (0.5*S2_ti) - (2*torch.log(dists+1e-9) + torch.log(0.5*raw[...,4] + 1e-9))
     U_ai += torch.log(torch.exp(-dists*F.relu(raw[...,3]) + 0.5 * dists*dists*raw[...,4])*S2_ti_p1 + S2_ti + 1e-9) - 0.5 * S_ai *S_ai
@@ -418,12 +423,14 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     Ar_map = torch.sum( (S_i[...,None] - weights[...,None]) * rgb,-2)
     # TempA = torch.sum( torch.exp(2 * (U_ai_copy + torch.log(rgb+1e-10)) + S_ai_copy * S_ai_copy) * torch.exp(S_ai_copy * S_ai_copy -1), -2 )
     # TempB = torch.sum( torch.exp(U_ai_copy + torch.log(rgb+1e-10) + 0.5 * S_ai_copy * S_ai_copy) ,-2)
-    TempA = torch.sum( rgb * rgb * torch.exp(2 * U_ai_copy + S_ai_copy * S_ai_copy) * (torch.exp(S_ai_copy * S_ai_copy) -1), -2 ) # rgb 값 밖으로 꺼냄
+    TempA = torch.sum( rgb * rgb * torch.exp(2 * U_ai_copy + S_ai_copy * S_ai_copy) * (torch.exp(S_ai_copy * S_ai_copy) -1), -2 ) # rgb 값 밖으로 꺼냄    
     TempB = torch.sum( rgb * torch.exp(U_ai_copy + 0.5 * S_ai_copy * S_ai_copy) ,-2)
+    # TempA = torch.clamp(TempA, min=None, max=1e+3)
+    # TempB = torch.clamp(TempB, min=None, max=1e+6)
     S2_A = torch.log( (TempA)/(TempB * TempB + 1e-9) +1)
     # S2_A = torch.log(TempA + TempB*TempB + 1e-9) - 2*torch.log(torch.abs(TempB) + 1e-9)
     U_A = torch.log(TempB + 1e-9) - 0.5*S2_A
-    bias_S2_A = 1e-6
+    bias_S2_A = 1e-4
     S2_A = S2_A + bias_S2_A
 
     # if torch.isnan(torch.mean(raw[...,4])):
@@ -1017,18 +1024,17 @@ def train():
 
         #############################################################################################################
         if i < 100: # pretraining
-            img_loss = img2mse(rgb, target_s)
- 
-        elif i<1000:
+            img_loss = img2mse(rgb, target_s) 
+        elif 100<=i and i<1000:
             img_loss = 1e+4 * img2mse(rgb, target_s) + 1e-8 * loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
-        elif i<2000:
+        elif 1000<=i and i<2000:
             img_loss = 1e+4 * img2mse(rgb, target_s) + 1e-6 * loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
-        elif i<3000:
+        elif 2000<=i and i<3000:
+            img_loss = 1e+4 * img2mse(rgb, target_s) + 1e-5 * loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
+        elif 3000<=i and i<4000:
             img_loss = 1e+4 * img2mse(rgb, target_s) + 1e-4 * loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
-        elif i<4000:
-            img_loss = 1e+4 * img2mse(rgb, target_s) + loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
         else:
-            img_loss = 1e+2 * img2mse(rgb, target_s) + loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
+            img_loss = 1e+4 * img2mse(rgb, target_s) + 1e-2 * loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
         #############################################################################################################
         trans = extras['raw'][...,-1]
 
