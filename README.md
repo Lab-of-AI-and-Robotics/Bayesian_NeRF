@@ -1,7 +1,6 @@
 # uncertainty_nerf
 For implementation details, see ./nerf_uncertainty.pdf
 
-*correct all the NaN issues
 ```
 terminal output Example):
 uncertainty:  tensor(0.6102, grad_fn=<MeanBackward0>)
