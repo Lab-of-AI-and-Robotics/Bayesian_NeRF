@@ -2,7 +2,7 @@
 For implementation details, see ./nerf_uncertainty.pdf
 
 *correct all the NaN issues
-'''
+'''bash
 EX):
 uncertainty:  tensor(0.6102, grad_fn=<MeanBackward0>)
 S_ai:  tensor(0.0635, grad_fn=<MeanBackward0>)
