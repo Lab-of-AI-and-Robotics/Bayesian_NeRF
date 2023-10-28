@@ -1,9 +1,9 @@
 # uncertainty_nerf
-By Minjae Lee, UNIST
+For implementation details, see ./nerf_uncertainty.pdf
 
 baseline code : https://github.com/yenchenlin/nerf-pytorch (바닐라 널프 깃헙코드 주소)
 
-For implementation details, see ./nerf_uncertainty.pdf
+
 
 
 
