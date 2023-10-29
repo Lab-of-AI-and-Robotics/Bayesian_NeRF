@@ -8,22 +8,25 @@ To Minjae:Please interpret all the following explanations into English
 * terminal output Example:
 
 ```
-uncertainty:  tensor(0.0196, grad_fn=<MeanBackward0>)
-S_ai:  tensor(0.3470, grad_fn=<MeanBackward0>)
-U_ai:  tensor(-0.0435, grad_fn=<MeanBackward0>)
-1TempA:  tensor(95620.0312, grad_fn=<MeanBackward0>)
-1TempB:  tensor(213687.8438, grad_fn=<MeanBackward0>)
-rgb:  tensor(0.5022, grad_fn=<MeanBackward0>)
-lam:  tensor(142606.7031, grad_fn=<MeanBackward0>)
-S_A:  tensor(0.0452, grad_fn=<MaxBackward1>)
-U_A:  tensor(10.6829, grad_fn=<MeanBackward0>)
-target_s:  tensor(0.5073)
-val 1:  tensor(10.6473, grad_fn=<MeanBackward0>)
-val 2:  tensor(-4.5688, grad_fn=<MeanBackward0>)
-val 3:  tensor(21.1087, grad_fn=<MeanBackward0>)
-val 4:  tensor(0., grad_fn=<MeanBackward0>)
-count number that lamda - true color < 0 :  0
-iteration :  10250
+# when use ReLU for Lagrangian
+uncertainty:  tensor(0.4062, grad_fn=<MeanBackward0>)
+S_ai:  tensor(0.9883, grad_fn=<MeanBackward0>)
+U_ai:  tensor(-2.6701, grad_fn=<MeanBackward0>)
+1TempA:  tensor(2735.1509, grad_fn=<MeanBackward0>)
+1TempB:  tensor(6.0082, grad_fn=<MeanBackward0>)
+rgb:  tensor(0.4970, grad_fn=<MeanBackward0>)
+lam:  tensor(1.7462, grad_fn=<MeanBackward0>)
+S2_A:  tensor(0.9995, grad_fn=<MeanBackward0>)
+U_A:  tensor(-0.1321, grad_fn=<MeanBackward0>)
+target_s:  tensor(0.5030)
+val 1:  tensor(0.0874, grad_fn=<MeanBackward0>)
+val 2:  tensor(-0.0004, grad_fn=<MeanBackward0>)
+val 3:  tensor(1.0517, grad_fn=<MeanBackward0>)
+val 4:  tensor(0.0102, grad_fn=<MeanBackward0>)
+# of (lamda - true color) < 0 :  4601
+loss mse:  tensor(0.0070, grad_fn=<MeanBackward0>)
+loss_unc:  tensor(1.2384, grad_fn=<AddBackward0>)
+iteration :  10000
 ```
 
 baseline code : https://github.com/yenchenlin/nerf-pytorch (바닐라 널프 깃헙코드 주소)
