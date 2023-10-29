@@ -37,7 +37,7 @@ iteration :  10000
 
 # when use exp for Lagrangian
 uncertainty_density(max:200):  tensor(82.9269, grad_fn=<MeanBackward0>)
-dist2Xuncertainty_sum(max:5):  tensor(1.5590, grad_fn=<MeanBackward0>)
+dist2Xuncertainty_sum:  tensor(1.5590, grad_fn=<MeanBackward0>)
 S_ai(max:10):  tensor(0.8232, grad_fn=<MeanBackward0>)
 U_ai:  tensor(-2.0454, grad_fn=<MeanBackward0>)
 S2_A(max:50):  tensor(3.1011, grad_fn=<MeanBackward0>)
