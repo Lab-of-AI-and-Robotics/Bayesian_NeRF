@@ -13,7 +13,7 @@ To Minjae:Please interpret all the following explanations into English
 1) strong restriction for Lagrangian (such as using exp(1e+4 * (truecolor-lambda)) returns NaN
 2) using only uncertainty loss does not converge
 3) using SGD does not converge
-4) maximum ranges of each uncertainty (or sigma) are chosen empirically. need experimental examinations
+4) maximum ranges of each uncertainty (or sigma) are arbitrary chosen. need experimental examinations
 
 # when use ReLU for Lagrangian, it is hard to handle the constraint (lambda-truecolor>0)
 uncertainty_density(max:200):  tensor(91.6017, grad_fn=<MeanBackward0>)
