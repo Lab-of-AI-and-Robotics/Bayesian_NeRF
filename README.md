@@ -8,6 +8,11 @@ To Minjae:Please interpret all the following explanations into English
 * terminal output Example:
 
 ```
+# some experimental results:
+1) strong restriction for Lagrangian (such as using exp(1e+4 err) returns NaN
+2) using only uncertainty loss does not converge
+3) using SGD does not converge
+
 # when use ReLU for Lagrangian
 uncertainty:  tensor(0.4062, grad_fn=<MeanBackward0>)
 S_ai:  tensor(0.9883, grad_fn=<MeanBackward0>)
@@ -29,24 +34,27 @@ loss_unc:  tensor(1.2384, grad_fn=<AddBackward0>)
 iteration :  10000
 
 # when use exp for Lagrangian
-uncertainty:  tensor(0.1576, grad_fn=<MeanBackward0>)
-S_ai:  tensor(0.5860, grad_fn=<MeanBackward0>)
-U_ai:  tensor(-1.8593, grad_fn=<MeanBackward0>)
-1TempA:  tensor(2049.8872, grad_fn=<MeanBackward0>)
-1TempB:  tensor(12.9940, grad_fn=<MeanBackward0>)
-rgb:  tensor(0.4975, grad_fn=<MeanBackward0>)
-lam:  tensor(312.2640, grad_fn=<MeanBackward0>)
-S2_A:  tensor(0.9929, grad_fn=<MeanBackward0>)
-U_A:  tensor(-0.2561, grad_fn=<MeanBackward0>)
-target_s:  tensor(0.5086)
-val 1:  tensor(4.8429, grad_fn=<MeanBackward0>)
-val 2:  tensor(-0.0075, grad_fn=<MeanBackward0>)
-val 3:  tensor(22.7168, grad_fn=<MeanBackward0>)
+uncertainty_density, max:  tensor(101.0658, grad_fn=<MeanBackward0>) / 200
+dist2Xuncertainty_sum(max:5):  tensor(2.3786, grad_fn=<MeanBackward0>)
+S_ai(max:10):  tensor(1.1693, grad_fn=<MeanBackward0>)
+U_ai:  tensor(0.4142, grad_fn=<MeanBackward0>)
+S2_A(max:50):  tensor(18.6530, grad_fn=<MeanBackward0>)
+U_A:  tensor(-7.8704, grad_fn=<MeanBackward0>)
+1TempA:  tensor(30070.9531, grad_fn=<MeanBackward0>)
+1TempB:  tensor(13.1023, grad_fn=<MeanBackward0>)
+rgb:  tensor(0.5018, grad_fn=<MeanBackward0>)
+uncert_map tensor(169.0121, grad_fn=<MeanBackward0>)
+lam:  tensor(683.2997, grad_fn=<MeanBackward0>)
+target_s:  tensor(0.5003)
+val 1:  tensor(5.6391, grad_fn=<MeanBackward0>)
+val 2:  tensor(1.2556, grad_fn=<MeanBackward0>)
+val 3:  tensor(5.6291, grad_fn=<MeanBackward0>)
 val 4:  tensor(0., grad_fn=<MeanBackward0>)
-# of (lamda - true color) < 0 :  251
-loss mse:  tensor(0.0069, grad_fn=<MeanBackward0>)
-loss_unc:  tensor(27.6033, grad_fn=<AddBackward0>)
+# of (lamda - true color) < 0 :  250
+loss mse:  tensor(0.0070, grad_fn=<MeanBackward0>)
+loss_unc:  tensor(12.5238, grad_fn=<AddBackward0>)
 iteration :  10000
+
 ```
 
 baseline code : https://github.com/yenchenlin/nerf-pytorch (바닐라 널프 깃헙코드 주소)
