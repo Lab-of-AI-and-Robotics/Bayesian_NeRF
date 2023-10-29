@@ -36,27 +36,26 @@ loss_unc:  tensor(5.5845, grad_fn=<AddBackward0>)
 iteration :  10000
 
 # when use exp for Lagrangian
-uncertainty_density(max:200):  tensor(101.0658, grad_fn=<MeanBackward0>)
-dist2Xuncertainty_sum(max:5):  tensor(2.3786, grad_fn=<MeanBackward0>)
-S_ai(max:10):  tensor(1.1693, grad_fn=<MeanBackward0>)
-U_ai:  tensor(0.4142, grad_fn=<MeanBackward0>)
-S2_A(max:50):  tensor(18.6530, grad_fn=<MeanBackward0>)
-U_A:  tensor(-7.8704, grad_fn=<MeanBackward0>)
-1TempA:  tensor(30070.9531, grad_fn=<MeanBackward0>)
-1TempB:  tensor(13.1023, grad_fn=<MeanBackward0>)
-rgb:  tensor(0.5018, grad_fn=<MeanBackward0>)
-uncert_map tensor(169.0121, grad_fn=<MeanBackward0>)
-lam:  tensor(683.2997, grad_fn=<MeanBackward0>)
-target_s:  tensor(0.5003)
-val 1:  tensor(5.6391, grad_fn=<MeanBackward0>)
-val 2:  tensor(1.2556, grad_fn=<MeanBackward0>)
-val 3:  tensor(5.6291, grad_fn=<MeanBackward0>)
+uncertainty_density(max:200):  tensor(82.9269, grad_fn=<MeanBackward0>)
+dist2Xuncertainty_sum(max:5):  tensor(1.5590, grad_fn=<MeanBackward0>)
+S_ai(max:10):  tensor(0.8232, grad_fn=<MeanBackward0>)
+U_ai:  tensor(-2.0454, grad_fn=<MeanBackward0>)
+S2_A(max:50):  tensor(3.1011, grad_fn=<MeanBackward0>)
+U_A:  tensor(-1.1285, grad_fn=<MeanBackward0>)
+1TempA:  tensor(45631.0469, grad_fn=<MeanBackward0>)
+1TempB:  tensor(11.3169, grad_fn=<MeanBackward0>)
+rgb:  tensor(0.5155, grad_fn=<MeanBackward0>)
+uncert_map tensor(136.4511, grad_fn=<MeanBackward0>)
+lam:  tensor(369.3352, grad_fn=<MeanBackward0>)
+target_s:  tensor(0.5126)
+val 1:  tensor(5.2473, grad_fn=<MeanBackward0>)
+val 2:  tensor(0.4557, grad_fn=<MeanBackward0>)
+val 3:  tensor(9.8470, grad_fn=<MeanBackward0>)
 val 4:  tensor(0., grad_fn=<MeanBackward0>)
-# of (lamda - true color) < 0 :  250
-loss mse:  tensor(0.0070, grad_fn=<MeanBackward0>)
-loss_unc:  tensor(12.5238, grad_fn=<AddBackward0>)
+# of (lamda - true color) < 0 :  525
+loss mse:  tensor(0.0082, grad_fn=<MeanBackward0>)
+loss_unc:  tensor(31.8276, grad_fn=<MeanBackward0>)
 iteration :  10000
-
 ```
 
 baseline code : https://github.com/yenchenlin/nerf-pytorch (바닐라 널프 깃헙코드 주소)
