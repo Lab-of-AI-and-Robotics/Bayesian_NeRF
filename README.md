@@ -9,7 +9,7 @@ To Minjae:Please interpret all the following explanations into English
 
 ```
 # some experimental results:
-1) strong restriction for Lagrangian (such as using exp(1e+4 err) returns NaN
+1) strong restriction for Lagrangian (such as using exp(1e+4 * (lambda-truecolor)) returns NaN
 2) using only uncertainty loss does not converge
 3) using SGD does not converge
 
