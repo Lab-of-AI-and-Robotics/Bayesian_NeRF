@@ -27,6 +27,26 @@ val 4:  tensor(0.0102, grad_fn=<MeanBackward0>)
 loss mse:  tensor(0.0070, grad_fn=<MeanBackward0>)
 loss_unc:  tensor(1.2384, grad_fn=<AddBackward0>)
 iteration :  10000
+
+# when use exp for Lagrangian
+uncertainty:  tensor(0.1576, grad_fn=<MeanBackward0>)
+S_ai:  tensor(0.5860, grad_fn=<MeanBackward0>)
+U_ai:  tensor(-1.8593, grad_fn=<MeanBackward0>)
+1TempA:  tensor(2049.8872, grad_fn=<MeanBackward0>)
+1TempB:  tensor(12.9940, grad_fn=<MeanBackward0>)
+rgb:  tensor(0.4975, grad_fn=<MeanBackward0>)
+lam:  tensor(312.2640, grad_fn=<MeanBackward0>)
+S2_A:  tensor(0.9929, grad_fn=<MeanBackward0>)
+U_A:  tensor(-0.2561, grad_fn=<MeanBackward0>)
+target_s:  tensor(0.5086)
+val 1:  tensor(4.8429, grad_fn=<MeanBackward0>)
+val 2:  tensor(-0.0075, grad_fn=<MeanBackward0>)
+val 3:  tensor(22.7168, grad_fn=<MeanBackward0>)
+val 4:  tensor(0., grad_fn=<MeanBackward0>)
+# of (lamda - true color) < 0 :  251
+loss mse:  tensor(0.0069, grad_fn=<MeanBackward0>)
+loss_unc:  tensor(27.6033, grad_fn=<AddBackward0>)
+iteration :  10000
 ```
 
 baseline code : https://github.com/yenchenlin/nerf-pytorch (바닐라 널프 깃헙코드 주소)
