@@ -84,16 +84,16 @@ bash download_example_data.sh
 - #### Official NeRF dataset
     You can find NeRF dataset in the [NeRF](https://www.matthewtancik.com/nerf) link. Download this link and setting dataset. To demonstrate the effect of uncertainty in our experiments, we adjusted the number of datasets provided and conducted experiments.
 
-- #### SLAM dataset
-    ...
-
 
 <br/>
 
 ## Running the code 
+Below is an example of a training execution command. You can set --config, --expname, and --datadir according to your own situation to run code.
 ```
 python run_nerf.py --config configs/fern.txt --expname fern_test --datadir ./data/nerf_llff_data/fern
 ```
+
+
 
 <br/>
 
