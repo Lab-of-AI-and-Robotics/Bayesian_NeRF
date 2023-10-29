@@ -274,6 +274,7 @@ def create_nerf(args):
 
     # Create optimizer
     optimizer = torch.optim.Adam(params=grad_vars, lr=args.lrate, betas=(0.9, 0.999))
+    # optimizer = torch.optim.SGD(params=grad_vars, lr=args.lrate * 1e+2)
 
     start = 0
     basedir = args.basedir
@@ -375,7 +376,11 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     #####################################################################################
     # raw[...,4] : uncertainty of density   
     # raw[...,3] : density mean value 
-    # raw[...,:3] : color mean value 
+    # raw[...,:3] : color mean value
+    
+    uncertainty_density = raw[...,4]
+    uncertainty_density = torch.clamp(uncertainty_density, min=1e-9, max=200.)
+    print("uncertainty_density(max:200): ", torch.mean(uncertainty_density))
     
     distXdensity = dists * F.relu(raw[...,3])
     distXdensity_sum = torch.cat([torch.zeros((distXdensity.shape[0], 1)), -distXdensity], axis=-1)
@@ -385,14 +390,15 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     mu_Tip1 = distXdensity_sum[:, 1:]
     Ti = torch.exp(mu_Ti)
     
-    dist2Xuncertainty = dists* dists* raw[...,4] # raw[..., 4] = var > 0.01
+    dist2Xuncertainty = dists* dists* uncertainty_density # raw[..., 4] = var > 0.01
     dist2Xuncertainty_sum = torch.cat([torch.zeros((dist2Xuncertainty.shape[0], 1)), dist2Xuncertainty], axis=-1)
     dist2Xuncertainty_sum = dist2Xuncertainty_sum.cumsum(axis=-1)
     dist2Xuncertainty_sum[:, 0] = 0.01 #init sigma2_T1
     dist2Xuncertainty_sum += 1e-9
+    # dist2Xuncertainty_sum = torch.clamp(dist2Xuncertainty_sum, min=1e-9, max=5.)
     sigma2_Ti = dist2Xuncertainty_sum[:, :-1]
     sigma2_Tip1 = dist2Xuncertainty_sum[:, 1:]
-    print("uncertainty: ", torch.mean(dist2Xuncertainty))
+    print("dist2Xuncertainty_sum: ", torch.mean(dist2Xuncertainty_sum))
     
     U_ti = mu_Ti
     U_ti_p1 = mu_Tip1
@@ -405,14 +411,15 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     # sigma2_m = S2_ti_p1 + S2_ti - 2.*corr*torch.sqrt(S2_ti_p1 * S2_ti)
     sigma2_m = torch.square(torch.sqrt(S2_ti_p1) - torch.sqrt(S2_ti))
     sigma2_m = torch.clamp(sigma2_m, min=1e-9, max=None)
-    Temp1 = sigma2_m /(dists*dists*raw[...,4]+1e-9) # left term of si
+    Temp1 = sigma2_m /(dists*dists*uncertainty_density+1e-9) # left term of si
     Temp2 = torch.exp(U_ti_p1 + 0.5*S2_ti_p1) + torch.exp(U_ti + 0.5*S2_ti) # right term of si
 
     S_i = Temp1 * Temp2 # s_{i}
-    S_ai = (dists*dists*raw[...,4])/(2 * torch.sqrt(sigma2_m) + 1e-9) # sigma_{alpha_i}
-    print("S_ai: ", torch.mean(S_ai))
-    U_ai = U_ti + (0.5*S2_ti) - (2*torch.log(dists+1e-9) + torch.log(0.5*raw[...,4] + 1e-9))
-    U_ai += torch.log(torch.exp(-dists*F.relu(raw[...,3]) + 0.5 * dists*dists*raw[...,4])*S2_ti_p1 + S2_ti + 1e-9) - 0.5 * S_ai *S_ai
+    S_ai = (dists*dists*uncertainty_density)/(2 * torch.sqrt(sigma2_m) + 1e-9) # sigma_{alpha_i}
+    S_ai = torch.clamp(S_ai, min=1e-6, max=10.)
+    print("S_ai(max:10): ", torch.mean(S_ai))
+    U_ai = U_ti + (0.5*S2_ti) - (2*torch.log(dists+1e-9) + torch.log(0.5*uncertainty_density + 1e-9))
+    U_ai += torch.log(torch.exp(-dists*F.relu(raw[...,3]) + 0.5 * dists*dists*uncertainty_density)*S2_ti_p1 + S2_ti + 1e-9) - 0.5 * S_ai *S_ai
     print("U_ai: ", torch.mean(U_ai))
     ##### dist 없애지 않은코드 ##############
 
@@ -420,18 +427,34 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     S_ai_copy = S_ai.unsqueeze(-1).expand(-1, -1, 3) # fitting tensor shape
     U_ai_copy = U_ai.unsqueeze(-1).expand(-1, -1, 3)
     
-    Ar_map = torch.sum( (S_i[...,None] - weights[...,None]) * rgb,-2)
-    # TempA = torch.sum( torch.exp(2 * (U_ai_copy + torch.log(rgb+1e-10)) + S_ai_copy * S_ai_copy) * torch.exp(S_ai_copy * S_ai_copy -1), -2 )
-    # TempB = torch.sum( torch.exp(U_ai_copy + torch.log(rgb+1e-10) + 0.5 * S_ai_copy * S_ai_copy) ,-2)
-    TempA = torch.sum( rgb * rgb * torch.exp(2 * U_ai_copy + S_ai_copy * S_ai_copy) * (torch.exp(S_ai_copy * S_ai_copy) -1), -2 ) # rgb 값 밖으로 꺼냄    
-    TempB = torch.sum( rgb * torch.exp(U_ai_copy + 0.5 * S_ai_copy * S_ai_copy) ,-2)
-    # TempA = torch.clamp(TempA, min=None, max=1e+3)
-    # TempB = torch.clamp(TempB, min=None, max=1e+6)
-    S2_A = torch.log( (TempA)/(TempB * TempB + 1e-9) +1)
-    # S2_A = torch.log(TempA + TempB*TempB + 1e-9) - 2*torch.log(torch.abs(TempB) + 1e-9)
-    U_A = torch.log(TempB + 1e-9) - 0.5*S2_A
-    bias_S2_A = 1e-4
-    S2_A = S2_A + bias_S2_A
+    # 
+#     Ar_map = torch.sum( (S_i[...,None] - weights[...,None]) * rgb,-2)
+#     # TempA = torch.sum( torch.exp(2 * (U_ai_copy + torch.log(rgb+1e-10)) + S_ai_copy * S_ai_copy) * torch.exp(S_ai_copy * S_ai_copy -1), -2 )
+#     # TempB = torch.sum( torch.exp(U_ai_copy + torch.log(rgb+1e-10) + 0.5 * S_ai_copy * S_ai_copy) ,-2)
+#     TempA = torch.sum( rgb * rgb * torch.exp(2 * U_ai_copy + S_ai_copy * S_ai_copy) * (torch.exp(S_ai_copy * S_ai_copy) -1), -2 ) # rgb 값 밖으로 꺼냄    
+#     TempB = torch.sum( rgb * torch.exp(U_ai_copy + 0.5 * S_ai_copy * S_ai_copy) ,-2)
+#     # TempA = torch.clamp(TempA, min=None, max=1e+3)
+#     # TempB = torch.clamp(TempB, min=None, max=1e+6)
+#     S2_A = torch.log( (TempA)/(TempB * TempB + 1e-9) +1)
+#     bias_S2_A = 1e-4
+#     S2_A = S2_A + bias_S2_A
+#     # S2_A = torch.log(TempA + TempB*TempB + 1e-9) - 2*torch.log(torch.abs(TempB) + 1e-9)
+#     U_A = torch.log(TempB + 1e-9) - 0.5*S2_A
+
+    
+    # new implementation with considering correlation=1.0 (assume all are similar)
+    ray_sample_num = dists.shape[-1]
+    SaiExpUaipSai2 = S_ai_copy * rgb * torch.exp(U_ai_copy+S_ai_copy*S_ai_copy/2.)
+    SaiExpUaipSai2_Tile = SaiExpUaipSai2.unsqueeze(-2).expand(-1,-1,ray_sample_num,-1)
+    TempA = torch.mean( SaiExpUaipSai2_Tile * SaiExpUaipSai2_Tile.transpose(-3,-2), axis=[-3,-2]) # use mean rather than sum, because of scale issue
+    TempB = torch.mean( rgb* rgb* torch.exp(U_ai_copy + S_ai_copy*S_ai_copy/2.), axis=-2)
+    S2_A = TempA/(TempB*TempB+1e-9)
+    S2_A = torch.clamp(S2_A, min=1e-6, max=50.)
+    U_A = torch.log(TempB+1e-9) - S2_A/2.
+    
+    print("S2_A(max:50): ", torch.mean(S2_A))
+    print("U_A: ", torch.mean(U_A))
+    
 
     # if torch.isnan(torch.mean(raw[...,4])):
     #     print("Mean value is NaN. Exiting the program.")
@@ -453,7 +476,7 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
 
 
     # uncert_map = S_A
-    uncert_map = torch.sum(weights[...,None] * raw[...,4].unsqueeze(-1).expand(-1, -1, 3), -2)
+    uncert_map = torch.sum(weights[...,None] * uncertainty_density.unsqueeze(-1).expand(-1, -1, 3), -2)
     lam_map = torch.sum( S_i[...,None] * rgb, -2)
 
     depth_map = torch.sum(weights * z_vals, -1)
@@ -1001,11 +1024,11 @@ def train():
 
         optimizer.zero_grad()
 
+        
         # this value is important term or used term for loss
         print("rgb: ", torch.mean(rgb))
-        print("lam: ", torch.mean(lam_map))
-        print("S_A: ", torch.max(S_A))
-        print("U_A: ", torch.mean(U_A))
+        print("uncert_map", torch.mean(uncert))
+        print("lam: ", torch.mean(lam_map))        
         print("target_s: ", torch.mean(target_s))
 
         # val 1~4 mean is term of loss element
@@ -1016,32 +1039,44 @@ def train():
         
         # print("check minus min:  ", torch.min((lam_map - target_s)))
         # print("check minus mean: ", torch.mean((lam_map - target_s)))
-        print("count number that lamda - true color < 0 : ", minjae_test_num)
-        print("iteration : ", i)
+        print("# of (lamda - true color) < 0 : ", minjae_test_num)
+        
 
         if torch.min(lam_map - target_s) < 0:
             minjae_test_num += 1
 
+        loss_imgmse = img2mse(rgb, target_s)
+        loss_imguncert = loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
         #############################################################################################################
         if i < 100: # pretraining
-            img_loss = img2mse(rgb, target_s) 
+            img_loss = loss_imgmse
         elif 100<=i and i<1000:
-            img_loss = 1e+4 * img2mse(rgb, target_s) + 1e-8 * loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
+            img_loss = 1e+4 * loss_imgmse + 1e-8 * loss_imguncert
         elif 1000<=i and i<2000:
-            img_loss = 1e+4 * img2mse(rgb, target_s) + 1e-6 * loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
+            img_loss = 1e+4 * loss_imgmse + 1e-6 * loss_imguncert
         elif 2000<=i and i<3000:
-            img_loss = 1e+4 * img2mse(rgb, target_s) + 1e-5 * loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
+            img_loss = 1e+4 * loss_imgmse + 1e-5 * loss_imguncert
         elif 3000<=i and i<4000:
-            img_loss = 1e+4 * img2mse(rgb, target_s) + 1e-4 * loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
+            img_loss = 1e+4 * loss_imgmse + 1e-4 * loss_imguncert
+        elif 4000<=i and i<5000:
+            img_loss = 1e+4 * loss_imgmse + 1e-2 * loss_imguncert
+        elif 5000<=i and i<10000:
+            img_loss = 1e+4 * loss_imgmse + 1e-1 * loss_imguncert
         else:
-            img_loss = 1e+4 * img2mse(rgb, target_s) + 1e-2 * loss_uncert3(rgb, lam_map, target_s, U_A, S_A, alpha, args.w)
+            img_loss = 1e+4 * loss_imgmse + 1e-0 * loss_imguncert
         #############################################################################################################
+        print("loss mse: ", loss_imgmse)
+        print("loss_unc: ", loss_imguncert)
+        print("iteration : ", i)
+        
         trans = extras['raw'][...,-1]
+        
 
         txt_img_loss = img2mse(rgb, target_s) 
         txt_psnr = mse2psnr(txt_img_loss)
 
 
+        
         loss = img_loss
         psnr = txt_psnr
 
@@ -1051,6 +1086,10 @@ def train():
             loss = loss + img_loss0
             psnr0 = mse2psnr(img_loss0)
 
+        # if torch.min(lam_map - target_s) < 0:
+        #     loss_imgmse.backward()
+        # else:
+        #     loss.backward()
         loss.backward()
         optimizer.step()
 

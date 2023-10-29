@@ -10,11 +10,13 @@ from external.pohsun_ssim import pytorch_ssim
 import lpips
 
 
-loss_uncert3 = lambda rgb, lam, true, mu_a, sigma_a2, alpha, w :\
-		torch.mean(torch.log(torch.abs(lam-true) + 1e-9)) + \
-                torch.mean(0.5 * torch.log(sigma_a2 + 1e-9)) + \
-                torch.mean( (torch.log(torch.abs(lam-true) + 1e-9) - mu_a) **2 /(2 * sigma_a2 + 1e-9)) \
-                + 1024 * torch.mean(torch.relu(true - lam))
+def loss_uncert3(rgb, lam, true, mu_a, sigma_a2, alpha, w):
+    mask = torch.where(lam-true>0, 1., 0.)
+    val1 = mask * (torch.log(torch.abs(lam-true) + 1e-9))
+    val2 = (0.5 * torch.log(sigma_a2 + 1e-9)) + torch.square(sigma_a2)
+    val3 = mask * ( (torch.log(torch.abs(lam-true) + 1e-9) - mu_a) **2 /(2 * sigma_a2 + 1e-9))
+    val4 = 1e+4 * (torch.relu(true-lam))
+    return torch.mean(val1+val2+val3+val4)
 
 # loss_uncert3 = lambda rgb, lam, true, mu_a, sigma_a2, alpha, w : torch.mean(torch.log(lam-true + 1e-9)) + \
 #                 torch.mean(0.5 * torch.log(sigma_a2)) + torch.mean((torch.log(lam-true + 1e-9)-mu_a) *(torch.log(lam-true + 1e-9)-mu_a)/(2 * sigma_a2))
