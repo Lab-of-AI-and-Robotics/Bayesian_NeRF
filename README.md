@@ -19,28 +19,28 @@ pip install -r requirements.txt
 ```
 
 
-## Running the example data (lego scene 4 images)
+## Running the example data (chair scene 4 images)
 ```
 cd NeRF_for_rgb_img
 
 cd NeRF_baseline
-python run_nerf.py --config configs/synthetic.txt --expname ../../result/lego/4_baseline --datadir ./data/nerf_synthetic/lego_4
+python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4_baseline --datadir ./data/nerf_synthetic/chair_4
 cd ..
 
 cd NeRF_color
-python run_nerf.py --config configs/synthetic.txt --expname ../../result/lego/4_color --datadir ./data/nerf_synthetic/lego_4
+python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4_color --datadir ./data/nerf_synthetic/chair_4
 cd ..
 
 cd NeRF_density
-python run_nerf.py --config configs/synthetic.txt --expname ../../result/lego/4_density --datadir ./data/nerf_synthetic/lego_4
+python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4_density --datadir ./data/nerf_synthetic/chair_4
 cd ..
 
 cd NeRF_density_and_color
-python run_nerf.py --config configs/synthetic.txt --expname ../../result/lego/4_den_col --datadir ./data/
+python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4_den_col --datadir ./data/
 cd ..
 
 cd NeRF_occupancy
-python run_nerf.py --config configs/synthetic.txt --expname ../../result/lego/4_occupancy --datadir ./data/
+python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4_occupancy --datadir ./data/
 cd ..
 
 cd ..
