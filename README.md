@@ -1,6 +1,7 @@
 
 # Bayesian NeRF: Quantifying Uncertainty with Volume Density in Neural Radiance Fields
 
+Minjae Lee, Kyeongsu Gang, Hyeonwoo Yu
 
 
 ## Dataset setting
