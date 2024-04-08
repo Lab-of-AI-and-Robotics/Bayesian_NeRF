@@ -1,8 +1,15 @@
 
 # Bayesian NeRF: Quantifying Uncertainty with Volume Density in Neural Radiance Fields
 
-Minjae Lee, Kyeongsu Gang, Hyeonwoo Yu
+Sibeak Lee, Kyeongsu Gang, Hyeonwoo Yu
 
+## Overview
+We present the Bayesian Neural Radiance Field (NeRF), which explicitly quantifies uncertainty in geometric volume structures without the need for additional networks, making it adept for challenging observations and uncontrolled images. 
+
+## Video Result
+(Far Left) Base (Left-Center) Color (Center) Density (Right-Center) Density and Color (Far Right) Occupancy
+
+<img src="figs/4_ori.gif" width="128" height="128"/><img src="figs/4_col.gif" width="128" height="128"/><img src="figs/4_den.gif" width="128" height="128"/><img src="figs/4_dencol.gif" width="128" height="128"/><img src="figs/4_occu.gif" width="128" height="128"/>
 
 ## Dataset setting
 - Synthetic data (Blender) and real-world data (LLFF) : [NeRF dataset](https://drive.google.com/drive/folders/128yBriW1IG_3NJ5Rp7APSTZsJqdJdfc1).
