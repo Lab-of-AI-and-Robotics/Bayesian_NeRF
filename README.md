@@ -3,6 +3,8 @@
 
 Sibeak Lee, Kyeongsu Gang, Hyeonwoo Yu
 
+[Paper](test) | [Video](https://youtu.be/wp5jW4S_jqo)
+
 ## Overview
 We present the Bayesian Neural Radiance Field (NeRF), which explicitly quantifies uncertainty in geometric volume structures without the need for additional networks, making it adept for challenging observations and uncontrolled images. 
 
