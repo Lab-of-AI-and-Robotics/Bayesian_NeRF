@@ -4,7 +4,7 @@
 
 Sibeak Lee, Kyeongsu Gang, Hyeonwoo Yu
 
-[Paper](test) | [Video](https://youtu.be/wp5jW4S_jqo)
+[Paper](https://arxiv.org/abs/2404.06727) | [Video](https://youtu.be/wp5jW4S_jqo)
 
 </div>
 
