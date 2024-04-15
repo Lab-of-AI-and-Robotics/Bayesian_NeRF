@@ -34,12 +34,15 @@ pip install -r requirements.txt
 
 ## Running the example data (chair scene 4 images)
 ```
+# copy sample dataset to each method folder
 cd Bayesian_NeRF
 cp -r NeRF_for_rgb_img/NeRF_baseline/data NeRF_for_rgb_img/NeRF_color/
 cp -r NeRF_for_rgb_img/NeRF_baseline/data NeRF_for_rgb_img/NeRF_density/
 cp -r NeRF_for_rgb_img/NeRF_baseline/data NeRF_for_rgb_img/NeRF_density_and_color/
 cp -r NeRF_for_rgb_img/NeRF_baseline/data NeRF_for_rgb_img/NeRF_occupancy/
 ```
+
+<br>
 
 ```
 cd NeRF_for_rgb_img
