@@ -30,6 +30,7 @@ conda create --name bayesian_nerf python=3.8
 conda activate bayesian_nerf
 pip install -r requirements.txt
 ```
+** It is also possible to set up the environment using conda install instead of pip install
 
 
 ## Running the example data (chair scene 4 images)
@@ -60,11 +61,11 @@ python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4
 cd ..
 
 cd NeRF_density_and_color
-python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4_den_col --datadir ./data/
+python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4_den_col --datadir ./data/nerf_synthetic/chair_4
 cd ..
 
 cd NeRF_occupancy
-python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4_occupancy --datadir ./data/
+python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4_occupancy --datadir ./data/nerf_synthetic/chair_4
 cd ..
 
 cd ..
