@@ -1,0 +1,12 @@
+mathutils==2.81.2
+open3d
+numpy
+opencv-python
+tqdm
+colorama
+scikit-image
+trimesh
+rtree
+torchmetrics
+torchvision
+pytorch_msssim
