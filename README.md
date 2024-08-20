@@ -1,6 +1,6 @@
 <div align=center>
   
-# Bayesian NeRF: Quantifying Uncertainty with Volume Density in Neural Radiance Fields
+# Bayesian NeRF: Quantifying Uncertainty with Volume Density in Neural Implicit SLAM
 
 Sibaek Lee, Kyeongsu Gang, Hyeonwoo Yu
 
