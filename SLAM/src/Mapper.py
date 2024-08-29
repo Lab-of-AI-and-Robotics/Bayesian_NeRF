@@ -748,8 +748,7 @@ class Mapper(object):
             result_file = os.path.join(output_dir, 'result.txt')
             with open(result_file, 'w') as f:
                 print("txt file open")
-                for frame_n in range(self.test_index[0], self.test_index[1] + 1):
-                    idx = frame_n - self.test_index[0]
+                for frame_n in range(0, len(self.frame_reader)):
                     _, gt_color, gt_depth, gt_c2w = self.frame_reader[frame_n]
                     cur_c2w = self.estimate_c2w_list[frame_n].to(self.device)
                     cur_c2w = gt_c2w  
@@ -773,7 +772,7 @@ class Mapper(object):
                     gt_color_np = gt_color.cpu().numpy().astype(np.float32)
                     color_np = color.cpu().numpy().astype(np.float32)
 
-                    if frame_n % 100 == 0:
+                    if frame_n % 200 == 0:
                         img = cv2.cvtColor(color_np * 255, cv2.COLOR_RGB2BGR)
                         gt_img = cv2.cvtColor(gt_color_np * 255, cv2.COLOR_RGB2BGR)
                         cv2.imwrite(os.path.join(output_dir, 'rendered_image', f'frame_{frame_n:05d}.png'), img)

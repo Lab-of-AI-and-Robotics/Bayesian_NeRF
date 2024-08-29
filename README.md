@@ -114,6 +114,8 @@ bash scripts/download_tum.sh # download tum dataset
 bash scripts/download_cull_replica_mesh.sh # for reconsturction evaluation
 ```
 
+## Preprocess Data
+You can use `data_delete_replica.py` and `data_delete_tum.py` to retain only specific indices in the dataset.
 
 ## Run & Evaluation
 ```bash
