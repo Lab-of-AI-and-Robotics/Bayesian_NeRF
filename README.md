@@ -102,11 +102,14 @@ cd ../..
 
  <br/>  <br/> 
 
+
 # SLAM Implementation 
 
 ## Enviroment Setting
 ```bash
+cd SLAM
 conda create -n bayesian_nerfslam python==3.8
+conda activate bayesian_nerfslam
 pip install -r requirements.txt
 ```
 
