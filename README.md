@@ -1,6 +1,6 @@
 <div align=center>
   
-# Bayesian NeRF: Quantifying Uncertainty with Volume Density in Neural Implicit SLAM
+# Bayesian NeRF: Quantifying Uncertainty with Volume Density for Neural Implicit Fields
 
 Sibaek Lee, Kyeongsu Gang, Hyeonwoo Yu
 
@@ -20,6 +20,16 @@ The results have been adjusted to account for the uncertainty in (Far Left) Base
 
 <br/> 
 
+## Enviroment Setting
+```bash
+cd Bayesian_NeRF
+conda create --name bayesian_nerf python=3.8
+conda activate bayesian_nerf
+pip install -r requirements.txt
+```
+<br/> 
+
+
 # NeRF Implementation
 
 
@@ -31,20 +41,11 @@ The results have been adjusted to account for the uncertainty in (Far Left) Base
 
 Our proposed method excels in scenarios with limited data, hence we recommend downloading the dataset and appropriately processing it for experimentation.
 
-## Enviroment Setting
-```bash
-cd NeRF
-conda create --name bayesian_nerf python=3.8
-conda activate bayesian_nerf
-pip install -r requirements.txt
-```
-** It is also possible to set up the environment using conda install instead of pip install
-
 
 ## Running the example data (chair scene 4 images)
 ```bash
 # copy sample dataset to each method folder
-cd Bayesian_NeRF
+cd NeRF
 cp -r NeRF_for_rgb_img/NeRF_baseline/data NeRF_for_rgb_img/NeRF_color/
 cp -r NeRF_for_rgb_img/NeRF_baseline/data NeRF_for_rgb_img/NeRF_density/
 cp -r NeRF_for_rgb_img/NeRF_baseline/data NeRF_for_rgb_img/NeRF_density_and_color/
@@ -105,14 +106,6 @@ cd ../..
 
 # SLAM Implementation 
 
-## Enviroment Setting
-```bash
-cd SLAM
-conda create -n bayesian_nerfslam python==3.8
-conda activate bayesian_nerfslam
-pip install -r requirements.txt
-```
-
 
 ## Download
 ```bash
@@ -136,4 +129,4 @@ python src/tools/eval_ate.py configs/TUM_RGBD/freiburg1_desk.yaml --txt_name out
 ```
 
 ## Acknowledgements
-This implementation is based on [NeRF](https://github.com/bmild/nerf) and [NICE-SLAM](https://github.com/cvg/nice-slam/tree/master).
+This implementation is based on [Vanila NeRF](https://github.com/bmild/nerf) and [NICE-SLAM](https://github.com/cvg/nice-slam/tree/master).
