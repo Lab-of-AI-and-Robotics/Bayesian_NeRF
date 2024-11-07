@@ -27,6 +27,12 @@ conda create --name bayesian_nerf python=3.8
 conda activate bayesian_nerf
 pip install -r requirements.txt
 ```
+
+```bash
+sudo apt-get update
+sudo apt-get install -y libgl1-mesa-glx
+sudo apt-get install -y libglib2.0-0
+```
 <br/> 
 
 
@@ -58,23 +64,23 @@ cp -r NeRF_for_rgb_img/NeRF_baseline/data NeRF_for_rgb_img/NeRF_occupancy/
 cd NeRF_for_rgb_img
 
 cd NeRF_baseline
-python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4_baseline --datadir ./data/nerf_synthetic/chair_4
+python run_nerf.py --config configs/synthetic.txt --expname ../../chair/4_baseline --datadir ./data/nerf_synthetic/chair_4
 cd ..
 
 cd NeRF_color
-python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4_color --datadir ./data/nerf_synthetic/chair_4
+python run_nerf.py --config configs/synthetic.txt --expname ../../chair/4_color --datadir ./data/nerf_synthetic/chair_4
 cd ..
 
 cd NeRF_density
-python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4_density --datadir ./data/nerf_synthetic/chair_4
+python run_nerf.py --config configs/synthetic.txt --expname ../../chair/4_density --datadir ./data/nerf_synthetic/chair_4
 cd ..
 
 cd NeRF_density_and_color
-python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4_den_col --datadir ./data/nerf_synthetic/chair_4
+python run_nerf.py --config configs/synthetic.txt --expname ../../chair/4_den_col --datadir ./data/nerf_synthetic/chair_4
 cd ..
 
 cd NeRF_occupancy
-python run_nerf.py --config configs/synthetic.txt --expname ../../result/chair/4_occupancy --datadir ./data/nerf_synthetic/chair_4
+python run_nerf.py --config configs/synthetic.txt --expname ../../chair/4_occupancy --datadir ./data/nerf_synthetic/chair_4
 cd ..
 
 cd ..
@@ -119,16 +125,29 @@ You can use `data_delete_replica.py` and `data_delete_tum.py` to retain only spe
 
 ## Run & Evaluation
 ```bash
-# Example of replica office 1 dataset
-python -W ignore run.py configs/Replica/office1.yaml
-python src/tools/eval_recon.py --rec_mesh output/Replica/office1/mesh/final_mesh_eval_rec.ply --gt_mesh cull_replica_mesh/office1.ply -2d -3d -txt_name output/Replica/office1/result.txt
-python src/tools/eval_ate.py configs/Replica/office1.yaml --txt_name output/Replica/office1/result.txt
+# (Replica) Origianl method
+python -W ignore run.py configs/Replica/room0.yaml
+python src/tools/eval_recon.py --rec_mesh output/Replica/room0/mesh/final_mesh_eval_rec.ply --gt_mesh cull_replica_mesh/room0.ply -2d -3d -txt_name output/Replica/room0/result.txt
+python src/tools/eval_ate.py configs/Replica/room0.yaml --txt_name output/Replica/room0/result.txt
 
-# Example of tum freiburg1 dataset
+# (Replica) Uncertainty method
+python -W ignore run.py configs/Replica/room0_uncert.yaml --uncert
+python src/tools/eval_recon.py --rec_mesh output/Replica/room0_uncert/mesh/final_mesh_eval_rec.ply --gt_mesh cull_replica_mesh/room0.ply -2d -3d -txt_name output/Replica/room0_uncert/result.txt
+python src/tools/eval_ate.py configs/Replica/room0_uncert.yaml --txt_name output/Replica/room0_uncert/result.txt
+```
+
+```bash
+# (TUM) Origianl method
 python -W ignore run.py configs/TUM_RGBD/freiburg1_desk.yaml
 python src/tools/eval_ate.py configs/TUM_RGBD/freiburg1_desk.yaml --txt_name output/TUM_RGBD/freiburg1_desk/result.txt
 
+# (TUM) Uncertainty method
+python -W ignore run.py configs/TUM_RGBD/freiburg1_desk_uncert.yaml --uncert
+python src/tools/eval_ate.py configs/TUM_RGBD/freiburg1_desk_uncert.yaml --txt_name output/TUM_RGBD/freiburg1_desk_uncert/result.txt
 ```
+
+
+
 
 ## Acknowledgements
 This implementation is based on [Vanila NeRF](https://github.com/bmild/nerf) and [NICE-SLAM](https://github.com/cvg/nice-slam/tree/master).
