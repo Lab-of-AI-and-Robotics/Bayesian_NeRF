@@ -114,3 +114,4 @@ open3d
 trimesh
 scikit-image
 rtree
+kornia
