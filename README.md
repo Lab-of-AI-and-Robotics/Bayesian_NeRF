@@ -2,7 +2,7 @@
   
 # Bayesian NeRF: Quantifying Uncertainty with Volume Density for Neural Implicit Fields
 
-Sibaek Lee, Kyeongsu Gang, Hyeonwoo Yu
+Sibaek Lee, Kyeongsu Gang, Seongbo Ha, Hyeonwoo Yu
 
 [Paper](https://arxiv.org/abs/2404.06727) | [Video](https://youtu.be/wp5jW4S_jqo)
 
