@@ -423,6 +423,172 @@ def create_nerf(args):
     return render_kwargs_train, render_kwargs_test, start, grad_vars, optimizer
 
 
+# def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=False):
+#     """Transforms model's predictions to semantically meaningful values.
+#     Args:
+#         raw: [num_rays, num_samples along ray, 4]. Prediction from model.
+#         z_vals: [num_rays, num_samples along ray]. Integration time.
+#         rays_d: [num_rays, 3]. Direction of each ray.
+#     Returns:
+#         rgb_map: [num_rays, 3]. Estimated RGB color of a ray.
+#         disp_map: [num_rays]. Disparity map. Inverse of depth map.
+#         acc_map: [num_rays]. Sum of weights along each ray.
+#         weights: [num_rays, num_samples]. Weights assigned to each sampled color.
+#         depth_map: [num_rays]. Estimated distance to object.
+#     """
+#     raw2alpha = lambda raw, dists, act_fn=F.relu: 1.-torch.exp(-act_fn(raw)*dists)
+#     # #################################################################################
+#     # raw2alpha = lambda raw, dists, act_fn=F.relu: act_fn(raw)*dists
+
+#     #################################################################################
+
+#     dists = z_vals[...,1:] - z_vals[...,:-1] 
+#     dists = torch.cat([dists, torch.Tensor([1e10]).expand(dists[...,:1].shape)], -1)  # [N_rays, N_samples]
+#     # last_column = dists[:, -1]
+#     # dists = torch.cat([dists, last_column.unsqueeze(-1)], dim=-1)
+#     dists = dists * torch.norm(rays_d[...,None,:], dim=-1)
+
+#     rgb = torch.sigmoid(raw[...,:3])  # [N_rays, N_samples, 3]
+
+#     noise = 0.
+#     if raw_noise_std > 0.:
+#         noise = torch.randn(raw[...,3].shape) * raw_noise_std
+
+#         # Overwrite randomly sampled data if pytest
+#         if pytest:
+#             np.random.seed(0)
+#             noise = np.random.rand(*list(raw[...,3].shape)) * raw_noise_std
+#             noise = torch.Tensor(noise)
+
+
+#     alpha = raw2alpha(raw[...,3] + noise, dists)  # [N_rays, N_samples]
+#     weights = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1)), 1.-alpha + 1e-10], -1), -1)[:, :-1]
+#     rgb_map = torch.sum(weights[...,None] * rgb, -2)  # [N_rays, 3] #RGB MAP = 기존 방식이랑 동일
+
+
+    
+#     #####################################################################################
+#     # raw[...,4] : uncertainty of density   
+#     # raw[...,3] : density mean value 
+#     # raw[...,:3] : color mean value
+    
+#     uncertainty_density = raw[...,4]
+#     uncertainty_density = torch.clamp(uncertainty_density, min=1e-9, max=200.)
+#     # print("uncertainty_density(max:200): ", torch.mean(uncertainty_density))
+    
+#     distXdensity = dists * F.relu(raw[...,3])
+#     distXdensity_sum = torch.cat([torch.zeros((distXdensity.shape[0], 1)), -distXdensity], axis=-1)
+#     distXdensity_sum = distXdensity_sum.cumsum(axis=-1)
+#     distXdensity_sum[:, 0] = 0. # init mu_T1
+#     mu_Ti = distXdensity_sum[:, :-1]
+#     mu_Tip1 = distXdensity_sum[:, 1:]
+#     Ti = torch.exp(mu_Ti)
+    
+#     dist2Xuncertainty = dists* dists* uncertainty_density # raw[..., 4] = var > 0.01
+#     dist2Xuncertainty_sum = torch.cat([torch.zeros((dist2Xuncertainty.shape[0], 1)), dist2Xuncertainty], axis=-1)
+#     dist2Xuncertainty_sum = dist2Xuncertainty_sum.cumsum(axis=-1)
+#     dist2Xuncertainty_sum[:, 0] = 0.01 #init sigma2_T1
+#     dist2Xuncertainty_sum += 1e-9
+#     # dist2Xuncertainty_sum = torch.clamp(dist2Xuncertainty_sum, min=1e-9, max=5.)
+#     sigma2_Ti = dist2Xuncertainty_sum[:, :-1]
+#     sigma2_Tip1 = dist2Xuncertainty_sum[:, 1:]
+#     # print("dist2Xuncertainty_sum: ", torch.mean(dist2Xuncertainty_sum))
+    
+#     U_ti = mu_Ti
+#     U_ti_p1 = mu_Tip1
+#     S2_ti = sigma2_Ti
+#     S2_ti_p1 = sigma2_Tip1
+
+#     ##### dist 없애지 않은코드 ##############
+#     # corr = dist2Xuncertainty_sum[:,:-1] / torch.sqrt( dist2Xuncertainty_sum[:,:-1]**2 + dist2Xuncertainty_sum[:,:-1] * dist2Xuncertainty )
+#     # corr = torch.clamp(corr, min=0, max=1.-1e-9)
+#     # sigma2_m = S2_ti_p1 + S2_ti - 2.*corr*torch.sqrt(S2_ti_p1 * S2_ti)
+#     sigma2_m = torch.square(torch.sqrt(S2_ti_p1) - torch.sqrt(S2_ti))
+#     sigma2_m = torch.clamp(sigma2_m, min=1e-9, max=None)
+#     Temp1 = sigma2_m /(dists*dists*uncertainty_density+1e-9) # left term of si
+#     Temp2 = torch.exp(U_ti_p1 + 0.5*S2_ti_p1) + torch.exp(U_ti + 0.5*S2_ti) # right term of si
+
+#     S_i = Temp1 * Temp2 # s_{i}
+#     S_ai = (dists*dists*uncertainty_density)/(2 * torch.sqrt(sigma2_m) + 1e-9) # sigma_{alpha_i}
+#     S_ai = torch.clamp(S_ai, min=1e-6, max=10.)
+#     #print("S_ai(max:10): ", torch.mean(S_ai))
+#     U_ai = U_ti + (0.5*S2_ti) - (2*torch.log(dists+1e-9) + torch.log(0.5*uncertainty_density + 1e-9))
+#     U_ai += torch.log(torch.exp(-dists*F.relu(raw[...,3]) + 0.5 * dists*dists*uncertainty_density)*S2_ti_p1 + S2_ti + 1e-9) - 0.5 * S_ai *S_ai
+#     #print("U_ai: ", torch.mean(U_ai))
+#     ##### dist 없애지 않은코드 ##############
+
+#     ### lamda - C = A(r)
+#     S_ai_copy = S_ai.unsqueeze(-1).expand(-1, -1, 3) # fitting tensor shape
+#     U_ai_copy = U_ai.unsqueeze(-1).expand(-1, -1, 3)
+    
+#     # 
+# #     Ar_map = torch.sum( (S_i[...,None] - weights[...,None]) * rgb,-2)
+# #     # TempA = torch.sum( torch.exp(2 * (U_ai_copy + torch.log(rgb+1e-10)) + S_ai_copy * S_ai_copy) * torch.exp(S_ai_copy * S_ai_copy -1), -2 )
+# #     # TempB = torch.sum( torch.exp(U_ai_copy + torch.log(rgb+1e-10) + 0.5 * S_ai_copy * S_ai_copy) ,-2)
+# #     TempA = torch.sum( rgb * rgb * torch.exp(2 * U_ai_copy + S_ai_copy * S_ai_copy) * (torch.exp(S_ai_copy * S_ai_copy) -1), -2 ) # rgb 값 밖으로 꺼냄    
+# #     TempB = torch.sum( rgb * torch.exp(U_ai_copy + 0.5 * S_ai_copy * S_ai_copy) ,-2)
+# #     # TempA = torch.clamp(TempA, min=None, max=1e+3)
+# #     # TempB = torch.clamp(TempB, min=None, max=1e+6)
+# #     S2_A = torch.log( (TempA)/(TempB * TempB + 1e-9) +1)
+# #     bias_S2_A = 1e-4
+# #     S2_A = S2_A + bias_S2_A
+# #     # S2_A = torch.log(TempA + TempB*TempB + 1e-9) - 2*torch.log(torch.abs(TempB) + 1e-9)
+# #     U_A = torch.log(TempB + 1e-9) - 0.5*S2_A
+
+    
+#     # new implementation with considering correlation=1.0 (assume all are similar)
+#     ray_sample_num = dists.shape[-1]
+#     SaiExpUaipSai2 = S_ai_copy * rgb * torch.exp(U_ai_copy+S_ai_copy*S_ai_copy/2.)
+#     SaiExpUaipSai2_Tile = SaiExpUaipSai2.unsqueeze(-2).expand(-1,-1,ray_sample_num,-1)
+#     TempA = torch.mean( SaiExpUaipSai2_Tile * SaiExpUaipSai2_Tile.transpose(-3,-2), axis=[-3,-2]) # use mean rather than sum, because of scale issue
+#     TempB = torch.mean( rgb* rgb* torch.exp(U_ai_copy + S_ai_copy*S_ai_copy/2.), axis=-2)
+#     S2_A = TempA/(TempB*TempB+1e-9)
+#     S2_A = torch.clamp(S2_A, min=1e-6, max=50.)
+#     U_A = torch.log(TempB+1e-9) - S2_A/2.
+    
+#     # print("S2_A(max:50): ", torch.mean(S2_A))
+#     # print("U_A: ", torch.mean(U_A))
+    
+
+#     # if torch.isnan(torch.mean(raw[...,4])):
+#     #     print("Mean value is NaN. Exiting the program.")
+#     #     sys.exit()
+
+#     # print("1TempA: ", torch.mean(TempA))
+#     # print("1TempB: ", torch.mean(TempB))
+#     # print("1S_A: ", torch.mean(S_A))
+#     # print("1U_A: ", torch.mean(U_A))
+#     # print("1AR: ", torch.mean(Ar_map))
+#     # print("1RGB: ", torch.mean(rgb_map))
+
+
+#     # print("2S_A: ", torch.max(S_A))
+#     # print("2U_A: ", torch.max(U_A))
+
+#     # print("3S_A: ", torch.min(S_A))
+#     # print("3U_A: ", torch.min(U_A))
+
+
+#     # uncert_map = S_A
+#     uncert_map = torch.sum(weights[...,None] * uncertainty_density.unsqueeze(-1).expand(-1, -1, 3), -2)
+#     lam_map = torch.sum( S_i[...,None] * rgb, -2)
+
+#     depth_map = torch.sum(weights * z_vals, -1)
+#     disp_map = 1./torch.max(1e-10 * torch.ones_like(depth_map), depth_map / torch.sum(weights, -1))
+#     acc_map = torch.sum(weights, -1)
+
+    
+
+#     if white_bkgd:
+#         # print("okay")
+#         rgb_map = rgb_map + (1.-acc_map[...,None])
+
+#     #####################################################################################################################
+#     #return rgb_map, disp_map, acc_map, weights, depth_map
+#     # return rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, F.relu(raw[...,3] + noise).mean(-1) # last term is alpha map
+#     return rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, F.relu(raw[...,3] + noise).mean(-1), lam_map, S2_A, U_A 
+#     #####################################################################################################################
+
 def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=False):
     """Transforms model's predictions to semantically meaningful values.
     Args:
@@ -435,159 +601,49 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
         acc_map: [num_rays]. Sum of weights along each ray.
         weights: [num_rays, num_samples]. Weights assigned to each sampled color.
         depth_map: [num_rays]. Estimated distance to object.
+        uncert_map: [num_rays, 3]. Uncertainty map (zeros).
+        alpha_map: [num_rays]. Alpha map.
+        lam_map: [num_rays, 3]. Lambda map (zeros).
+        S2_A: [num_rays, 3]. S2_A map (zeros).
+        U_A: [num_rays, 3]. U_A map (zeros).
     """
     raw2alpha = lambda raw, dists, act_fn=F.relu: 1.-torch.exp(-act_fn(raw)*dists)
-    # #################################################################################
-    # raw2alpha = lambda raw, dists, act_fn=F.relu: act_fn(raw)*dists
-
-    #################################################################################
 
     dists = z_vals[...,1:] - z_vals[...,:-1] 
-    dists = torch.cat([dists, torch.Tensor([1e10]).expand(dists[...,:1].shape)], -1)  # [N_rays, N_samples]
-    # last_column = dists[:, -1]
-    # dists = torch.cat([dists, last_column.unsqueeze(-1)], dim=-1)
+    dists = torch.cat([dists, torch.Tensor([1e10]).expand(dists[...,:1].shape).to(dists.device)], -1)  # [N_rays, N_samples]
     dists = dists * torch.norm(rays_d[...,None,:], dim=-1)
 
     rgb = torch.sigmoid(raw[...,:3])  # [N_rays, N_samples, 3]
 
     noise = 0.
     if raw_noise_std > 0.:
-        noise = torch.randn(raw[...,3].shape) * raw_noise_std
+        noise = torch.randn(raw[...,3].shape).to(raw.device) * raw_noise_std
 
-        # Overwrite randomly sampled data if pytest
         if pytest:
             np.random.seed(0)
             noise = np.random.rand(*list(raw[...,3].shape)) * raw_noise_std
-            noise = torch.Tensor(noise)
-
+            noise = torch.Tensor(noise).to(raw.device)
 
     alpha = raw2alpha(raw[...,3] + noise, dists)  # [N_rays, N_samples]
-    weights = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1)), 1.-alpha + 1e-10], -1), -1)[:, :-1]
-    rgb_map = torch.sum(weights[...,None] * rgb, -2)  # [N_rays, 3] #RGB MAP = 기존 방식이랑 동일
-
-
-    
-    #####################################################################################
-    # raw[...,4] : uncertainty of density   
-    # raw[...,3] : density mean value 
-    # raw[...,:3] : color mean value
-    
-    uncertainty_density = raw[...,4]
-    uncertainty_density = torch.clamp(uncertainty_density, min=1e-9, max=200.)
-    # print("uncertainty_density(max:200): ", torch.mean(uncertainty_density))
-    
-    distXdensity = dists * F.relu(raw[...,3])
-    distXdensity_sum = torch.cat([torch.zeros((distXdensity.shape[0], 1)), -distXdensity], axis=-1)
-    distXdensity_sum = distXdensity_sum.cumsum(axis=-1)
-    distXdensity_sum[:, 0] = 0. # init mu_T1
-    mu_Ti = distXdensity_sum[:, :-1]
-    mu_Tip1 = distXdensity_sum[:, 1:]
-    Ti = torch.exp(mu_Ti)
-    
-    dist2Xuncertainty = dists* dists* uncertainty_density # raw[..., 4] = var > 0.01
-    dist2Xuncertainty_sum = torch.cat([torch.zeros((dist2Xuncertainty.shape[0], 1)), dist2Xuncertainty], axis=-1)
-    dist2Xuncertainty_sum = dist2Xuncertainty_sum.cumsum(axis=-1)
-    dist2Xuncertainty_sum[:, 0] = 0.01 #init sigma2_T1
-    dist2Xuncertainty_sum += 1e-9
-    # dist2Xuncertainty_sum = torch.clamp(dist2Xuncertainty_sum, min=1e-9, max=5.)
-    sigma2_Ti = dist2Xuncertainty_sum[:, :-1]
-    sigma2_Tip1 = dist2Xuncertainty_sum[:, 1:]
-    # print("dist2Xuncertainty_sum: ", torch.mean(dist2Xuncertainty_sum))
-    
-    U_ti = mu_Ti
-    U_ti_p1 = mu_Tip1
-    S2_ti = sigma2_Ti
-    S2_ti_p1 = sigma2_Tip1
-
-    ##### dist 없애지 않은코드 ##############
-    # corr = dist2Xuncertainty_sum[:,:-1] / torch.sqrt( dist2Xuncertainty_sum[:,:-1]**2 + dist2Xuncertainty_sum[:,:-1] * dist2Xuncertainty )
-    # corr = torch.clamp(corr, min=0, max=1.-1e-9)
-    # sigma2_m = S2_ti_p1 + S2_ti - 2.*corr*torch.sqrt(S2_ti_p1 * S2_ti)
-    sigma2_m = torch.square(torch.sqrt(S2_ti_p1) - torch.sqrt(S2_ti))
-    sigma2_m = torch.clamp(sigma2_m, min=1e-9, max=None)
-    Temp1 = sigma2_m /(dists*dists*uncertainty_density+1e-9) # left term of si
-    Temp2 = torch.exp(U_ti_p1 + 0.5*S2_ti_p1) + torch.exp(U_ti + 0.5*S2_ti) # right term of si
-
-    S_i = Temp1 * Temp2 # s_{i}
-    S_ai = (dists*dists*uncertainty_density)/(2 * torch.sqrt(sigma2_m) + 1e-9) # sigma_{alpha_i}
-    S_ai = torch.clamp(S_ai, min=1e-6, max=10.)
-    #print("S_ai(max:10): ", torch.mean(S_ai))
-    U_ai = U_ti + (0.5*S2_ti) - (2*torch.log(dists+1e-9) + torch.log(0.5*uncertainty_density + 1e-9))
-    U_ai += torch.log(torch.exp(-dists*F.relu(raw[...,3]) + 0.5 * dists*dists*uncertainty_density)*S2_ti_p1 + S2_ti + 1e-9) - 0.5 * S_ai *S_ai
-    #print("U_ai: ", torch.mean(U_ai))
-    ##### dist 없애지 않은코드 ##############
-
-    ### lamda - C = A(r)
-    S_ai_copy = S_ai.unsqueeze(-1).expand(-1, -1, 3) # fitting tensor shape
-    U_ai_copy = U_ai.unsqueeze(-1).expand(-1, -1, 3)
-    
-    # 
-#     Ar_map = torch.sum( (S_i[...,None] - weights[...,None]) * rgb,-2)
-#     # TempA = torch.sum( torch.exp(2 * (U_ai_copy + torch.log(rgb+1e-10)) + S_ai_copy * S_ai_copy) * torch.exp(S_ai_copy * S_ai_copy -1), -2 )
-#     # TempB = torch.sum( torch.exp(U_ai_copy + torch.log(rgb+1e-10) + 0.5 * S_ai_copy * S_ai_copy) ,-2)
-#     TempA = torch.sum( rgb * rgb * torch.exp(2 * U_ai_copy + S_ai_copy * S_ai_copy) * (torch.exp(S_ai_copy * S_ai_copy) -1), -2 ) # rgb 값 밖으로 꺼냄    
-#     TempB = torch.sum( rgb * torch.exp(U_ai_copy + 0.5 * S_ai_copy * S_ai_copy) ,-2)
-#     # TempA = torch.clamp(TempA, min=None, max=1e+3)
-#     # TempB = torch.clamp(TempB, min=None, max=1e+6)
-#     S2_A = torch.log( (TempA)/(TempB * TempB + 1e-9) +1)
-#     bias_S2_A = 1e-4
-#     S2_A = S2_A + bias_S2_A
-#     # S2_A = torch.log(TempA + TempB*TempB + 1e-9) - 2*torch.log(torch.abs(TempB) + 1e-9)
-#     U_A = torch.log(TempB + 1e-9) - 0.5*S2_A
-
-    
-    # new implementation with considering correlation=1.0 (assume all are similar)
-    ray_sample_num = dists.shape[-1]
-    SaiExpUaipSai2 = S_ai_copy * rgb * torch.exp(U_ai_copy+S_ai_copy*S_ai_copy/2.)
-    SaiExpUaipSai2_Tile = SaiExpUaipSai2.unsqueeze(-2).expand(-1,-1,ray_sample_num,-1)
-    TempA = torch.mean( SaiExpUaipSai2_Tile * SaiExpUaipSai2_Tile.transpose(-3,-2), axis=[-3,-2]) # use mean rather than sum, because of scale issue
-    TempB = torch.mean( rgb* rgb* torch.exp(U_ai_copy + S_ai_copy*S_ai_copy/2.), axis=-2)
-    S2_A = TempA/(TempB*TempB+1e-9)
-    S2_A = torch.clamp(S2_A, min=1e-6, max=50.)
-    U_A = torch.log(TempB+1e-9) - S2_A/2.
-    
-    # print("S2_A(max:50): ", torch.mean(S2_A))
-    # print("U_A: ", torch.mean(U_A))
-    
-
-    # if torch.isnan(torch.mean(raw[...,4])):
-    #     print("Mean value is NaN. Exiting the program.")
-    #     sys.exit()
-
-    # print("1TempA: ", torch.mean(TempA))
-    # print("1TempB: ", torch.mean(TempB))
-    # print("1S_A: ", torch.mean(S_A))
-    # print("1U_A: ", torch.mean(U_A))
-    # print("1AR: ", torch.mean(Ar_map))
-    # print("1RGB: ", torch.mean(rgb_map))
-
-
-    # print("2S_A: ", torch.max(S_A))
-    # print("2U_A: ", torch.max(U_A))
-
-    # print("3S_A: ", torch.min(S_A))
-    # print("3U_A: ", torch.min(U_A))
-
-
-    # uncert_map = S_A
-    uncert_map = torch.sum(weights[...,None] * uncertainty_density.unsqueeze(-1).expand(-1, -1, 3), -2)
-    lam_map = torch.sum( S_i[...,None] * rgb, -2)
+    weights = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1)).to(alpha.device), 1.-alpha + 1e-10], -1), -1)[:, :-1]
+    rgb_map = torch.sum(weights[...,None] * rgb, -2)  # [N_rays, 3]
 
     depth_map = torch.sum(weights * z_vals, -1)
     disp_map = 1./torch.max(1e-10 * torch.ones_like(depth_map), depth_map / torch.sum(weights, -1))
     acc_map = torch.sum(weights, -1)
 
-    
 
     if white_bkgd:
-        # print("okay")
         rgb_map = rgb_map + (1.-acc_map[...,None])
 
-    #####################################################################################################################
-    #return rgb_map, disp_map, acc_map, weights, depth_map
-    # return rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, F.relu(raw[...,3] + noise).mean(-1) # last term is alpha map
-    return rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, F.relu(raw[...,3] + noise).mean(-1), lam_map, S2_A, U_A 
-    #####################################################################################################################
+    uncert_map = torch.zeros_like(rgb_map)  # [N_rays, 3]
+    lam_map = torch.zeros_like(rgb_map)     # [N_rays, 3]
+    S2_A = torch.zeros_like(rgb_map)        # [N_rays, 3]
+    U_A = torch.zeros_like(rgb_map)         # [N_rays, 3]
+    alpha_map = F.relu(raw[...,3] + noise).mean(-1)  # [N_rays]
+
+
+    return rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, alpha_map, lam_map, S2_A, U_A
 
 def render_rays(ray_batch,
                 network_fn,
