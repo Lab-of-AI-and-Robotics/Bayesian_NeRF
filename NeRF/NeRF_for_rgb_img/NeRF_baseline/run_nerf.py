@@ -130,111 +130,13 @@ def render(H, W, K, chunk=1024*32, rays=None, c2w=None, ndc=True,
 
     ################################################################################################################
     # k_extract = ['rgb_map', 'disp_map', 'acc_map']
-    #k_extract = ['rgb_map', 'disp_map', 'acc_map', 'uncert_map', 'alpha_map']
-    k_extract = ['rgb_map', 'disp_map', 'acc_map', 'uncert_map', 'alpha_map', 'lam_map', 'S_A', 'U_A']
+    k_extract = ['rgb_map', 'disp_map', 'acc_map', 'uncert_map', 'alpha_map']
     ################################################################################################################
     ret_list = [all_ret[k] for k in k_extract]
     ret_dict = {k : all_ret[k] for k in all_ret if k not in k_extract}
     return ret_list + [ret_dict]
 
 
-# def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedir=None, render_factor=0):
-#     H, W, focal = hwf
-
-#     if render_factor!=0:
-#         # Render downsampled for speed
-#         H = H//render_factor
-#         W = W//render_factor
-#         focal = focal/render_factor
-
-#     rgbs = []
-#     disps = []
-#     #################################################################
-#     uncerts = []
-#     if savedir is not None:
-#         txt_filename = os.path.join(savedir, 'info.txt')
-#         txt_file = open(txt_filename, 'w')
-
-#     all_losses = []
-#     all_psnrs = []
-#     all_ssims = []
-#     all_lpips = []
-#     #################################################################
-
-#     t = time.time()
-#     for i, c2w in enumerate(tqdm(render_poses)):
-#         print(i, time.time() - t)
-#         t = time.time()
-#         #################################################################
-#         # rgb, disp, acc, _ = render(H, W, K, chunk=chunk, c2w=c2w[:3,:4], **render_kwargs)
-#         # rgb, disp, acc, uncert, alpha, _ = render(H, W, K, chunk=chunk, c2w=c2w[:3,:4], **render_kwargs)
-#         rgb, disp, acc, uncert, alpha, lam, S_A, U_A, _ = render(H, W, K, chunk=chunk, c2w=c2w[:3,:4], **render_kwargs)
-#         uncerts.append(uncert.cpu().numpy())
-#         #################################################################
-#         rgbs.append(rgb.cpu().numpy())
-#         disps.append(disp.cpu().numpy())
-
-#         if i==0:
-#             print(rgb.shape, disp.shape)
-
-#         """
-#         if gt_imgs is not None and render_factor==0:
-#             p = -10. * np.log10(np.mean(np.square(rgb.cpu().numpy() - gt_imgs[i])))
-#             print(p)
-#         """
-#         ###############################################################################################
-#         txt_img_loss = img2mse(rgb, gt_imgs[i]) 
-#         txt_psnr = mse2psnr(txt_img_loss)
-#         txt_ssim = ssim_value(rgb, gt_imgs[i])
-#         txt_lpips = lpips_value(rgb, gt_imgs[i])
-
-#         all_ssims.append(txt_ssim)
-#         all_lpips.append(txt_lpips)
-#         all_losses.append(txt_img_loss.item())
-#         all_psnrs.append(txt_psnr.item())
-#         ###############################################################################################
-
-#         if savedir is not None:
-#             ###############################################################################################
-#             base_filename = '{:03d}.png'.format(i) 
-#             line = f"{base_filename}, {txt_img_loss.item():.5f}, {txt_psnr.item():.5f}, {txt_ssim:.5f}, {txt_lpips:.5f}\n"   
-#             txt_file.write(line)
-
-#             uncert8 = to8b(uncerts[-1]/ np.max(uncerts[-1]))
-#             filename = os.path.join(savedir, 'Uncert_{:03d}.png'.format(i))
-#             imageio.imwrite(filename, uncert8)
-
-#             # gt_imgs8[i] = to8b(gt_imgs[i][-1])
-#             # filename = os.path.join(savedir, '{:03d}_GT.png'.format(i))
-#             # imageio.imwrite(filename, gt_imgs8[i])
-#             ###############################################################################################
-
-#             rgb8 = to8b(rgbs[-1])
-#             filename = os.path.join(savedir, '{:03d}.png'.format(i))
-#             imageio.imwrite(filename, rgb8)
-        
-#     if savedir is not None:
-#         txt_file.close()
-#         avg_loss = sum(all_losses) / len(all_losses)
-#         avg_psnr = sum(all_psnrs) / len(all_psnrs)
-#         avg_ssim = sum(all_ssims) / len(all_ssims)
-#         avg_lpips = sum(all_lpips) / len(all_lpips)
-
-#         with open(txt_filename, 'r') as f:
-#             data = f.read()
-#         with open(txt_filename, 'w') as f:
-#             f.write(f"Average Loss: {avg_loss:.5f}, Average PSNR: {avg_psnr:.5f}, Average SSIM: {avg_ssim:.5f}, Average LPIPS: {avg_lpips:.5f}\n")
-#             f.write(data)
-
-
-#     ###############################################################################################
-#     # return rgbs, disps
-#     uncerts = np.stack(uncerts, 0)
-#     return rgbs, disps, uncerts, None
-#     ###############################################################################################
-
-
-# 이위의 render_path는 기존것이며, 비디오 렌더링을 위해 아래와같이 처리한것을 3월7일 이후에 만듬
 
 def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedir=None, render_factor=0):
     H, W, focal = hwf
@@ -261,10 +163,10 @@ def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedi
     t = time.time()
 
     for i, c2w in enumerate(tqdm(render_poses)):
-        print(i, time.time() - t)
+        print(i, "th image", time.time(), "real time: ", time.time() - t)
         t = time.time()
 
-        rgb, disp, acc, uncert, alpha, lam, S_A, U_A, _ = render(H, W, K, chunk=chunk, c2w=c2w[:3,:4], **render_kwargs)
+        rgb, disp, acc, uncert, alpha, _ = render(H, W, K, chunk=chunk, c2w=c2w[:3,:4], **render_kwargs)
         uncerts.append(uncert.cpu().numpy())
         rgbs.append(rgb.cpu().numpy())
         disps.append(disp.cpu().numpy())
@@ -282,12 +184,19 @@ def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedi
             txt_ssim = ssim_value(rgb, gt_imgs[i])
             txt_lpips = lpips_value(rgb, gt_imgs[i])
 
+            #################################################
+            # avg_ssim = np.mean(all_ssims)
+            all_ssims.append(txt_ssim)
+            # all_ssims_cpu = [x.cpu() for x in all_ssims]  
+            # avg_ssim = np.mean(all_ssims_cpu)  
+            #################################################
             all_ssims.append(txt_ssim)
             all_lpips.append(txt_lpips)
             all_losses.append(txt_img_loss.item())
             all_psnrs.append(txt_psnr.item())
 
             if savedir is not None:
+                ###############################################################################################
                 base_filename = '{:03d}.png'.format(i) 
                 line = f"{base_filename}, {txt_img_loss.item():.5f}, {txt_psnr.item():.5f}, {txt_ssim:.5f}, {txt_lpips:.5f}\n"   
                 txt_file.write(line)
@@ -296,35 +205,34 @@ def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedi
                 filename = os.path.join(savedir, 'Uncert_{:03d}.png'.format(i))
                 imageio.imwrite(filename, uncert8)
 
+                # gt_imgs8[i] = to8b(gt_imgs[i][-1])
+                # filename = os.path.join(savedir, '{:03d}_GT.png'.format(i))
+                # imageio.imwrite(filename, gt_imgs8[i])
+                ###############################################################################################
+
                 rgb8 = to8b(rgbs[-1])
                 filename = os.path.join(savedir, '{:03d}.png'.format(i))
                 imageio.imwrite(filename, rgb8)
 
 
-
     if savedir is not None:
         txt_file.close()
-        # avg_loss = np.mean(all_losses)
-        # avg_psnr = np.mean(all_psnrs)
-
-        # #################################################
-        # # avg_ssim = np.mean(all_ssims)
-        # all_ssims_cpu = [x.cpu() for x in all_ssims]  
-        # avg_ssim = np.mean(all_ssims_cpu)  
-        # #################################################
-
 
         avg_loss = sum(all_losses) / len(all_losses) if all_losses else 0 
         avg_psnr = sum(all_psnrs) / len(all_psnrs) if all_psnrs else 0 
         avg_ssim = sum(all_ssims) / len(all_ssims) if all_ssims else 0  
         avg_lpips = sum(all_lpips) / len(all_lpips) if all_lpips else 0  
 
-        avg_lpips = np.mean(all_lpips)
 
-        with open(txt_filename, 'a') as f:
+        with open(txt_filename, 'r') as f:
+            data = f.read()
+        with open(txt_filename, 'w') as f:
             f.write(f"Average Loss: {avg_loss:.5f}, Average PSNR: {avg_psnr:.5f}, Average SSIM: {avg_ssim:.5f}, Average LPIPS: {avg_lpips:.5f}\n")
+            f.write(data)
 
+    uncerts = np.stack(uncerts, 0)
     return rgbs, disps, uncerts, None
+
 
 
 def create_nerf(args):
@@ -350,7 +258,6 @@ def create_nerf(args):
 
     model_fine = None
     if args.N_importance > 0:
-        
         # model_fine = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
         #                   input_ch=input_ch, output_ch=output_ch, skips=skips,
         #                   input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
@@ -368,7 +275,6 @@ def create_nerf(args):
 
     # Create optimizer
     optimizer = torch.optim.Adam(params=grad_vars, lr=args.lrate, betas=(0.9, 0.999))
-    # optimizer = torch.optim.SGD(params=grad_vars, lr=args.lrate * 1e+2)
 
     start = 0
     basedir = args.basedir
@@ -423,171 +329,6 @@ def create_nerf(args):
     return render_kwargs_train, render_kwargs_test, start, grad_vars, optimizer
 
 
-# def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=False):
-#     """Transforms model's predictions to semantically meaningful values.
-#     Args:
-#         raw: [num_rays, num_samples along ray, 4]. Prediction from model.
-#         z_vals: [num_rays, num_samples along ray]. Integration time.
-#         rays_d: [num_rays, 3]. Direction of each ray.
-#     Returns:
-#         rgb_map: [num_rays, 3]. Estimated RGB color of a ray.
-#         disp_map: [num_rays]. Disparity map. Inverse of depth map.
-#         acc_map: [num_rays]. Sum of weights along each ray.
-#         weights: [num_rays, num_samples]. Weights assigned to each sampled color.
-#         depth_map: [num_rays]. Estimated distance to object.
-#     """
-#     raw2alpha = lambda raw, dists, act_fn=F.relu: 1.-torch.exp(-act_fn(raw)*dists)
-#     # #################################################################################
-#     # raw2alpha = lambda raw, dists, act_fn=F.relu: act_fn(raw)*dists
-
-#     #################################################################################
-
-#     dists = z_vals[...,1:] - z_vals[...,:-1] 
-#     dists = torch.cat([dists, torch.Tensor([1e10]).expand(dists[...,:1].shape)], -1)  # [N_rays, N_samples]
-#     # last_column = dists[:, -1]
-#     # dists = torch.cat([dists, last_column.unsqueeze(-1)], dim=-1)
-#     dists = dists * torch.norm(rays_d[...,None,:], dim=-1)
-
-#     rgb = torch.sigmoid(raw[...,:3])  # [N_rays, N_samples, 3]
-
-#     noise = 0.
-#     if raw_noise_std > 0.:
-#         noise = torch.randn(raw[...,3].shape) * raw_noise_std
-
-#         # Overwrite randomly sampled data if pytest
-#         if pytest:
-#             np.random.seed(0)
-#             noise = np.random.rand(*list(raw[...,3].shape)) * raw_noise_std
-#             noise = torch.Tensor(noise)
-
-
-#     alpha = raw2alpha(raw[...,3] + noise, dists)  # [N_rays, N_samples]
-#     weights = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1)), 1.-alpha + 1e-10], -1), -1)[:, :-1]
-#     rgb_map = torch.sum(weights[...,None] * rgb, -2)  # [N_rays, 3] #RGB MAP = 기존 방식이랑 동일
-
-
-    
-#     #####################################################################################
-#     # raw[...,4] : uncertainty of density   
-#     # raw[...,3] : density mean value 
-#     # raw[...,:3] : color mean value
-    
-#     uncertainty_density = raw[...,4]
-#     uncertainty_density = torch.clamp(uncertainty_density, min=1e-9, max=200.)
-#     # print("uncertainty_density(max:200): ", torch.mean(uncertainty_density))
-    
-#     distXdensity = dists * F.relu(raw[...,3])
-#     distXdensity_sum = torch.cat([torch.zeros((distXdensity.shape[0], 1)), -distXdensity], axis=-1)
-#     distXdensity_sum = distXdensity_sum.cumsum(axis=-1)
-#     distXdensity_sum[:, 0] = 0. # init mu_T1
-#     mu_Ti = distXdensity_sum[:, :-1]
-#     mu_Tip1 = distXdensity_sum[:, 1:]
-#     Ti = torch.exp(mu_Ti)
-    
-#     dist2Xuncertainty = dists* dists* uncertainty_density # raw[..., 4] = var > 0.01
-#     dist2Xuncertainty_sum = torch.cat([torch.zeros((dist2Xuncertainty.shape[0], 1)), dist2Xuncertainty], axis=-1)
-#     dist2Xuncertainty_sum = dist2Xuncertainty_sum.cumsum(axis=-1)
-#     dist2Xuncertainty_sum[:, 0] = 0.01 #init sigma2_T1
-#     dist2Xuncertainty_sum += 1e-9
-#     # dist2Xuncertainty_sum = torch.clamp(dist2Xuncertainty_sum, min=1e-9, max=5.)
-#     sigma2_Ti = dist2Xuncertainty_sum[:, :-1]
-#     sigma2_Tip1 = dist2Xuncertainty_sum[:, 1:]
-#     # print("dist2Xuncertainty_sum: ", torch.mean(dist2Xuncertainty_sum))
-    
-#     U_ti = mu_Ti
-#     U_ti_p1 = mu_Tip1
-#     S2_ti = sigma2_Ti
-#     S2_ti_p1 = sigma2_Tip1
-
-#     ##### dist 없애지 않은코드 ##############
-#     # corr = dist2Xuncertainty_sum[:,:-1] / torch.sqrt( dist2Xuncertainty_sum[:,:-1]**2 + dist2Xuncertainty_sum[:,:-1] * dist2Xuncertainty )
-#     # corr = torch.clamp(corr, min=0, max=1.-1e-9)
-#     # sigma2_m = S2_ti_p1 + S2_ti - 2.*corr*torch.sqrt(S2_ti_p1 * S2_ti)
-#     sigma2_m = torch.square(torch.sqrt(S2_ti_p1) - torch.sqrt(S2_ti))
-#     sigma2_m = torch.clamp(sigma2_m, min=1e-9, max=None)
-#     Temp1 = sigma2_m /(dists*dists*uncertainty_density+1e-9) # left term of si
-#     Temp2 = torch.exp(U_ti_p1 + 0.5*S2_ti_p1) + torch.exp(U_ti + 0.5*S2_ti) # right term of si
-
-#     S_i = Temp1 * Temp2 # s_{i}
-#     S_ai = (dists*dists*uncertainty_density)/(2 * torch.sqrt(sigma2_m) + 1e-9) # sigma_{alpha_i}
-#     S_ai = torch.clamp(S_ai, min=1e-6, max=10.)
-#     #print("S_ai(max:10): ", torch.mean(S_ai))
-#     U_ai = U_ti + (0.5*S2_ti) - (2*torch.log(dists+1e-9) + torch.log(0.5*uncertainty_density + 1e-9))
-#     U_ai += torch.log(torch.exp(-dists*F.relu(raw[...,3]) + 0.5 * dists*dists*uncertainty_density)*S2_ti_p1 + S2_ti + 1e-9) - 0.5 * S_ai *S_ai
-#     #print("U_ai: ", torch.mean(U_ai))
-#     ##### dist 없애지 않은코드 ##############
-
-#     ### lamda - C = A(r)
-#     S_ai_copy = S_ai.unsqueeze(-1).expand(-1, -1, 3) # fitting tensor shape
-#     U_ai_copy = U_ai.unsqueeze(-1).expand(-1, -1, 3)
-    
-#     # 
-# #     Ar_map = torch.sum( (S_i[...,None] - weights[...,None]) * rgb,-2)
-# #     # TempA = torch.sum( torch.exp(2 * (U_ai_copy + torch.log(rgb+1e-10)) + S_ai_copy * S_ai_copy) * torch.exp(S_ai_copy * S_ai_copy -1), -2 )
-# #     # TempB = torch.sum( torch.exp(U_ai_copy + torch.log(rgb+1e-10) + 0.5 * S_ai_copy * S_ai_copy) ,-2)
-# #     TempA = torch.sum( rgb * rgb * torch.exp(2 * U_ai_copy + S_ai_copy * S_ai_copy) * (torch.exp(S_ai_copy * S_ai_copy) -1), -2 ) # rgb 값 밖으로 꺼냄    
-# #     TempB = torch.sum( rgb * torch.exp(U_ai_copy + 0.5 * S_ai_copy * S_ai_copy) ,-2)
-# #     # TempA = torch.clamp(TempA, min=None, max=1e+3)
-# #     # TempB = torch.clamp(TempB, min=None, max=1e+6)
-# #     S2_A = torch.log( (TempA)/(TempB * TempB + 1e-9) +1)
-# #     bias_S2_A = 1e-4
-# #     S2_A = S2_A + bias_S2_A
-# #     # S2_A = torch.log(TempA + TempB*TempB + 1e-9) - 2*torch.log(torch.abs(TempB) + 1e-9)
-# #     U_A = torch.log(TempB + 1e-9) - 0.5*S2_A
-
-    
-#     # new implementation with considering correlation=1.0 (assume all are similar)
-#     ray_sample_num = dists.shape[-1]
-#     SaiExpUaipSai2 = S_ai_copy * rgb * torch.exp(U_ai_copy+S_ai_copy*S_ai_copy/2.)
-#     SaiExpUaipSai2_Tile = SaiExpUaipSai2.unsqueeze(-2).expand(-1,-1,ray_sample_num,-1)
-#     TempA = torch.mean( SaiExpUaipSai2_Tile * SaiExpUaipSai2_Tile.transpose(-3,-2), axis=[-3,-2]) # use mean rather than sum, because of scale issue
-#     TempB = torch.mean( rgb* rgb* torch.exp(U_ai_copy + S_ai_copy*S_ai_copy/2.), axis=-2)
-#     S2_A = TempA/(TempB*TempB+1e-9)
-#     S2_A = torch.clamp(S2_A, min=1e-6, max=50.)
-#     U_A = torch.log(TempB+1e-9) - S2_A/2.
-    
-#     # print("S2_A(max:50): ", torch.mean(S2_A))
-#     # print("U_A: ", torch.mean(U_A))
-    
-
-#     # if torch.isnan(torch.mean(raw[...,4])):
-#     #     print("Mean value is NaN. Exiting the program.")
-#     #     sys.exit()
-
-#     # print("1TempA: ", torch.mean(TempA))
-#     # print("1TempB: ", torch.mean(TempB))
-#     # print("1S_A: ", torch.mean(S_A))
-#     # print("1U_A: ", torch.mean(U_A))
-#     # print("1AR: ", torch.mean(Ar_map))
-#     # print("1RGB: ", torch.mean(rgb_map))
-
-
-#     # print("2S_A: ", torch.max(S_A))
-#     # print("2U_A: ", torch.max(U_A))
-
-#     # print("3S_A: ", torch.min(S_A))
-#     # print("3U_A: ", torch.min(U_A))
-
-
-#     # uncert_map = S_A
-#     uncert_map = torch.sum(weights[...,None] * uncertainty_density.unsqueeze(-1).expand(-1, -1, 3), -2)
-#     lam_map = torch.sum( S_i[...,None] * rgb, -2)
-
-#     depth_map = torch.sum(weights * z_vals, -1)
-#     disp_map = 1./torch.max(1e-10 * torch.ones_like(depth_map), depth_map / torch.sum(weights, -1))
-#     acc_map = torch.sum(weights, -1)
-
-    
-
-#     if white_bkgd:
-#         # print("okay")
-#         rgb_map = rgb_map + (1.-acc_map[...,None])
-
-#     #####################################################################################################################
-#     #return rgb_map, disp_map, acc_map, weights, depth_map
-#     # return rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, F.relu(raw[...,3] + noise).mean(-1) # last term is alpha map
-#     return rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, F.relu(raw[...,3] + noise).mean(-1), lam_map, S2_A, U_A 
-#     #####################################################################################################################
 
 def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=False):
     """Transforms model's predictions to semantically meaningful values.
@@ -601,49 +342,57 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
         acc_map: [num_rays]. Sum of weights along each ray.
         weights: [num_rays, num_samples]. Weights assigned to each sampled color.
         depth_map: [num_rays]. Estimated distance to object.
-        uncert_map: [num_rays, 3]. Uncertainty map (zeros).
-        alpha_map: [num_rays]. Alpha map.
-        lam_map: [num_rays, 3]. Lambda map (zeros).
-        S2_A: [num_rays, 3]. S2_A map (zeros).
-        U_A: [num_rays, 3]. U_A map (zeros).
     """
     raw2alpha = lambda raw, dists, act_fn=F.relu: 1.-torch.exp(-act_fn(raw)*dists)
 
     dists = z_vals[...,1:] - z_vals[...,:-1] 
-    dists = torch.cat([dists, torch.Tensor([1e10]).expand(dists[...,:1].shape).to(dists.device)], -1)  # [N_rays, N_samples]
+    #dists = torch.cat([dists, torch.Tensor([1e10]).expand(dists[...,:1].shape)], -1)  # [N_rays, N_samples]
+    last_column = dists[:, -1]
+    dists = torch.cat([dists, last_column.unsqueeze(-1)], dim=-1)
     dists = dists * torch.norm(rays_d[...,None,:], dim=-1)
 
-    rgb = torch.sigmoid(raw[...,:3])  # [N_rays, N_samples, 3]
 
+    rgb = torch.sigmoid(raw[...,:3])  # [N_rays, N_samples, 3]
     noise = 0.
     if raw_noise_std > 0.:
-        noise = torch.randn(raw[...,3].shape).to(raw.device) * raw_noise_std
+        noise = torch.randn(raw[...,3].shape) * raw_noise_std
 
+        # Overwrite randomly sampled data if pytest
         if pytest:
             np.random.seed(0)
             noise = np.random.rand(*list(raw[...,3].shape)) * raw_noise_std
-            noise = torch.Tensor(noise).to(raw.device)
+            noise = torch.Tensor(noise)
 
     alpha = raw2alpha(raw[...,3] + noise, dists)  # [N_rays, N_samples]
-    weights = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1)).to(alpha.device), 1.-alpha + 1e-10], -1), -1)[:, :-1]
+    # weights = alpha * tf.math.cumprod(1.-alpha + 1e-10, -1, exclusive=True)
+    weights = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1)), 1.-alpha + 1e-10], -1), -1)[:, :-1]
+
+    #####################################3
+    color_uncert = raw[...,4] 
+    color_uncert = torch.clamp(color_uncert, min=1e-9, max=200.)
+    # print("color_uncert(max:200): ", torch.mean(color_uncert))
+    # print("uncert_color min: ", torch.min(color_uncert))
+    # print("uncert_color max: ", torch.max(color_uncert))
+
+
+    ###############################
+
     rgb_map = torch.sum(weights[...,None] * rgb, -2)  # [N_rays, 3]
+    uncert_map = torch.sum(weights * weights * raw[..., 4], -1) # [ray * sample]k
+
+    uncert_map = uncert_map.unsqueeze(-1).expand(-1, 3)
+
+    # print("uncert_map: ", uncert_map.shape)
 
     depth_map = torch.sum(weights * z_vals, -1)
     disp_map = 1./torch.max(1e-10 * torch.ones_like(depth_map), depth_map / torch.sum(weights, -1))
     acc_map = torch.sum(weights, -1)
 
-
     if white_bkgd:
         rgb_map = rgb_map + (1.-acc_map[...,None])
 
-    uncert_map = torch.zeros_like(rgb_map)  # [N_rays, 3]
-    lam_map = torch.zeros_like(rgb_map)     # [N_rays, 3]
-    S2_A = torch.zeros_like(rgb_map)        # [N_rays, 3]
-    U_A = torch.zeros_like(rgb_map)         # [N_rays, 3]
-    alpha_map = F.relu(raw[...,3] + noise).mean(-1)  # [N_rays]
 
-
-    return rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, alpha_map, lam_map, S2_A, U_A
+    return rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, F.relu(raw[...,3] + noise).mean(-1) # last term is alpha map
 
 def render_rays(ray_batch,
                 network_fn,
@@ -725,28 +474,20 @@ def render_rays(ray_batch,
     raw = network_query_fn(pts, viewdirs, network_fn)
     #########################################################################################################
     # rgb_map, disp_map, acc_map, weights, depth_map = raw2outputs(raw, z_vals, rays_d, raw_noise_std, white_bkgd, pytest=pytest)
-    # rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, alpha_map = raw2outputs(raw, z_vals, rays_d, raw_noise_std, white_bkgd, pytest=pytest)
-    rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, alpha_map, lam_map, S_A, U_A \
-    = raw2outputs(raw, z_vals, rays_d, raw_noise_std, white_bkgd, pytest=pytest)
+    rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, alpha_map = raw2outputs(raw, z_vals, rays_d, raw_noise_std, white_bkgd, pytest=pytest)
     #########################################################################################################
 
     if N_importance > 0:
         #########################################################################################################
         #rgb_map_0, disp_map_0, acc_map_0 = rgb_map, disp_map, acc_map
-        # rgb_map_0, disp_map_0, acc_map_0, uncert_map_0, alpha_map_0 = rgb_map, disp_map, acc_map, uncert_map, alpha_map
-        rgb_map_0, disp_map_0, acc_map_0, uncert_map_0, alpha_map_0, lam_map_0, S_A_0, U_A_0 = rgb_map, disp_map, acc_map, uncert_map, alpha_map, lam_map, S_A, U_A
+        rgb_map_0, disp_map_0, acc_map_0, uncert_map_0, alpha_map_0 = rgb_map, disp_map, acc_map, uncert_map, alpha_map
         #########################################################################################################
 
-        ########################################## fine net 문제가 여긴가 해서 sampling 방법 그냥 coarse랑 똑같이 해봄 ###########################
         z_vals_mid = .5 * (z_vals[...,1:] + z_vals[...,:-1])
         z_samples = sample_pdf(z_vals_mid, weights[...,1:-1], N_importance, det=(perturb==0.), pytest=pytest)
         z_samples = z_samples.detach()
 
         z_vals, _ = torch.sort(torch.cat([z_vals, z_samples], -1), -1)
-        ########################################## fine net 문제가 여긴가 해서 sampling 방법 그냥 coarse랑 똑같이 해봄 ###########################
-
-
-
         pts = rays_o[...,None,:] + rays_d[...,None,:] * z_vals[...,:,None] # [N_rays, N_samples + N_importance, 3]
 
         run_fn = network_fn if network_fine is None else network_fine
@@ -755,15 +496,12 @@ def render_rays(ray_batch,
 
         #########################################################################################################
         # rgb_map, disp_map, acc_map, weights, depth_map = raw2outputs(raw, z_vals, rays_d, raw_noise_std, white_bkgd, pytest=pytest)
-        # rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, alpha_map = raw2outputs(raw, z_vals, rays_d, raw_noise_std, white_bkgd, pytest=pytest)
-        rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, alpha_map, lam_map, S_A, U_A = raw2outputs(raw, z_vals, rays_d, raw_noise_std, white_bkgd, pytest=pytest)
+        rgb_map, disp_map, acc_map, weights, depth_map, uncert_map, alpha_map = raw2outputs(raw, z_vals, rays_d, raw_noise_std, white_bkgd, pytest=pytest)
         #########################################################################################################
 
     #########################################################################################################
     # ret = {'rgb_map' : rgb_map, 'disp_map' : disp_map, 'acc_map' : acc_map}
-    #ret = {'rgb_map' : rgb_map, 'disp_map' : disp_map, 'acc_map' : acc_map, 'uncert_map' : uncert_map, 'alpha_map' : alpha_map}
-    ret = {'rgb_map' : rgb_map, 'disp_map' : disp_map, 'acc_map' : acc_map, 'uncert_map' : uncert_map, 'alpha_map' : alpha_map, 'lam_map' : lam_map, "S_A" : S_A, 'U_A' : U_A}
-    
+    ret = {'rgb_map' : rgb_map, 'disp_map' : disp_map, 'acc_map' : acc_map, 'uncert_map' : uncert_map, 'alpha_map' : alpha_map}
     # ret['raw'] = raw
     ret['weights'] = weights
     #########################################################################################################
@@ -773,9 +511,7 @@ def render_rays(ray_batch,
         ret['rgb0'] = rgb_map_0
         ret['disp0'] = disp_map_0
         ret['acc0'] = acc_map_0
-        ########################################## fine net 문제가 여긴가 해서 sampling 방법 그냥 coarse랑 똑같이 해봄 ###########################
         ret['z_std'] = torch.std(z_samples, dim=-1, unbiased=False)  # [N_rays]
-        ########################################## fine net 문제가 여긴가 해서 sampling 방법 그냥 coarse랑 똑같이 해봄 ###########################
 
     for k in ret:
         if (torch.isnan(ret[k]).any() or torch.isinf(ret[k]).any()) and DEBUG:
@@ -808,11 +544,15 @@ def config_parser():
                         help='channels per layer in fine network')
     parser.add_argument("--N_rand", type=int, default=32*32*4, 
                         help='batch size (number of random rays per gradient step)')
-    parser.add_argument("--lrate", type=float, default=5e-4, # 4 
+    parser.add_argument("--lrate", type=float, default=5e-4, 
                         help='learning rate')
     parser.add_argument("--lrate_decay", type=int, default=250, 
                         help='exponential learning rate decay (in 1000 steps)')
-
+    # parser.add_argument("--chunk", type=int, default=1024*32, 
+    #                     help='number of rays processed in parallel, decrease if running out of memory')
+    # parser.add_argument("--netchunk", type=int, default=1024*64, 
+    #                     help='number of pts sent through network in parallel, decrease if running out of memory')
+    
     parser.add_argument("--chunk", type=int, default=1024*32, 
                         help='number of rays processed in parallel, decrease if running out of memory')
     parser.add_argument("--netchunk", type=int, default=1024*64, 
@@ -895,26 +635,25 @@ def config_parser():
     ########################################################################################################  
 
     # logging/saving options
-    parser.add_argument("--i_print",   type=int, default=10000, 
+    parser.add_argument("--i_print",   type=int, default=100, 
                         help='frequency of console printout and metric loggin')
     parser.add_argument("--i_img",     type=int, default=100000, 
                         help='frequency of tensorboard image logging')
-    parser.add_argument("--i_weights", type=int, default=50000, 
+    parser.add_argument("--i_weights", type=int, default=500, 
                         help='frequency of weight ckpt saving')
-    parser.add_argument("--i_testset", type=int, default=50000, 
+    parser.add_argument("--i_testset", type=int, default=500, 
                         help='frequency of testset saving')
-    parser.add_argument("--i_video",   type=int, default=50000, 
+    parser.add_argument("--i_video",   type=int, default=500, 
                         help='frequency of render_poses video saving')
     
     ########################################################################################################   
     parser.add_argument("--beta_min",   type=float, default=0.001) 
     parser.add_argument("--w",   type=float, default=0.01) 
 
-    parser.add_argument("--total_epoch",   type=int, default=51000, 
+    parser.add_argument("--total_epoch",   type=int, default=900, 
                         help='total_epoch')
     ########################################################################################################    
     return parser
-
 
 def train():
 
@@ -932,15 +671,35 @@ def train():
         hwf = poses[0,:3,-1]
         poses = poses[:,:3,:4]
         print('Loaded llff', images.shape, render_poses.shape, hwf, args.datadir)
-        if not isinstance(i_test, list):
-            i_test = [i_test]
+        # if not isinstance(i_test, list):
+        #     i_test = [i_test]
 
-        if args.llffhold > 0:
-            print('Auto LLFF holdout,', args.llffhold)
-            i_test = np.arange(images.shape[0])[::args.llffhold] # index test and val
-        i_val = i_test
-        i_train = np.array([i for i in np.arange(int(images.shape[0])) if # index train
-                        (i not in i_test and i not in i_val)])
+        # if args.llffhold > 0:
+        #     print('Auto LLFF holdout,', args.llffhold)
+        #     i_test = np.arange(images.shape[0])[::args.llffhold] # index test and val
+        # i_val = i_test
+        # i_train = np.array([i for i in np.arange(int(images.shape[0])) if # index train
+        #                 (i not in i_test and i not in i_val)])
+        
+        
+        ####
+        # 전체 이미지 수를 가져옵니다.
+        N_imgs = images.shape[0]
+
+        # 학습에 사용할 이미지 인덱스 (0부터 7까지 총 8장)
+        i_train = np.arange(4)
+
+        # 남은 인덱스들 (8부터 N_imgs-1까지)
+        remaining_indices = np.arange(8, N_imgs)
+
+        # 남은 인덱스를 섞어서 랜덤하게 분할합니다.
+        np.random.shuffle(remaining_indices)
+
+        # 남은 인덱스의 절반을 검증 세트로, 나머지 절반을 테스트 세트로 분할합니다.
+        half = len(remaining_indices) // 2
+        i_val = remaining_indices[:half]
+        i_test = remaining_indices[half:]
+        ####
         print('DEFINING BOUNDS')
         if args.no_ndc:
             near = np.ndarray.min(bds) * .9
@@ -1091,11 +850,7 @@ def train():
     if use_batching:
         rays_rgb = torch.Tensor(rays_rgb).to(device)
 
-
-    ################################################################
-    # N_iters = 200000 + 1
     N_iters = args.total_epoch + 11
-    ###################################################################
     print('Begin')
     print('TRAIN views are', i_train)
     print('TEST views are', i_test)
@@ -1105,7 +860,6 @@ def train():
     # writer = SummaryWriter(os.path.join(basedir, 'summaries', expname))
     
     start = start + 1
-    minjae_test_num = 0
     for i in trange(start, N_iters):
         time0 = time.time()
 
@@ -1159,10 +913,7 @@ def train():
         # rgb, disp, acc, extras = render(H, W, K, chunk=args.chunk, rays=batch_rays,
         #                                         verbose=i < 10, retraw=True,
         #                                         **render_kwargs_train)
-        # rgb, disp, acc, uncert, alpha, extras = render(H, W, K, chunk=args.chunk, rays=batch_rays,
-        #                                         verbose=i < 10, retraw=True,
-        #                                         **render_kwargs_train)
-        rgb, disp, acc, uncert, alpha, lam_map, S_A, U_A, extras = render(H, W, K, chunk=args.chunk, rays=batch_rays,
+        rgb, disp, acc, uncert, alpha, extras = render(H, W, K, chunk=args.chunk, rays=batch_rays,
                                                 verbose=i < 10, retraw=True,
                                                 **render_kwargs_train)
         #############################################################################################################
@@ -1170,48 +921,17 @@ def train():
 
         optimizer.zero_grad()
 
-        
-        # this value is important term or used term for loss
-        # print("rgb: ", torch.mean(rgb))
-        # print("uncert_map", torch.mean(uncert))
-        # print("lam: ", torch.mean(lam_map))        
-        # print("target_s: ", torch.mean(target_s))
-
-        # val 1~4 mean is term of loss element
-        # print("val 1: ", torch.mean(torch.log(torch.abs(lam_map - target_s) + 1e-10)))
-        # print("val 2: ", torch.mean(0.5 * torch.log(S_A + 1e-9)))
-        # print("val 3: ", torch.mean( (torch.log(torch.abs(lam_map - target_s) + 1e-9) - U_A)**2/(2*S_A + 1e-9)))
-        # print("val 4: ", torch.mean(1024 * F.relu(target_s - lam_map)))
-        
-        # print("check minus min:  ", torch.min((lam_map - target_s)))
-        # print("check minus mean: ", torch.mean((lam_map - target_s)))
-        # print("# of (lamda - true color) < 0 : ", minjae_test_num)
-        
-
-        if torch.min(lam_map - target_s) < 0:
-            minjae_test_num += 1
-
         loss_imgmse = img2mse(rgb, target_s)
-        img_loss = loss_imgmse
 
         trans = extras['raw'][...,-1]
-        
-
-        txt_img_loss = img2mse(rgb, target_s) 
-        txt_psnr = mse2psnr(txt_img_loss)
-
-
-        
-        loss = img_loss
+        txt_psnr = mse2psnr(loss_imgmse)
+        loss = loss_imgmse
         psnr = txt_psnr
-        print("psnr: ", psnr)
-
 
         if 'rgb0' in extras:
             img_loss0 = img2mse(extras['rgb0'], target_s)
             loss = loss + img_loss0
             psnr0 = mse2psnr(img_loss0)
-
 
         loss.backward()
         optimizer.step()
@@ -1235,7 +955,7 @@ def train():
             torch.save({
                 'global_step': global_step,
                 'network_fn_state_dict': render_kwargs_train['network_fn'].state_dict(),
-                # 'network_fine_state_dict': render_kwargs_train['network_fine'].state_dict(),
+                #'network_fine_state_dict': render_kwargs_train['network_fine'].state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
             }, path)
             print('Saved checkpoints at', path)
@@ -1267,7 +987,8 @@ def train():
 
     
         if i%args.i_print==0:
-            tqdm.write(f"[TRAIN] Iter: {i} Loss: {loss.item()}  PSNR: {psnr.item()}    UNCERT: {torch.mean(uncert)}")
+            current_time = time.time()
+            tqdm.write(f"[{current_time}] [TRAIN] Iter: {i} Loss: {loss.item()}  PSNR: {psnr.item()}    UNCERT: {torch.mean(uncert)}")
         """
             print(expname, i, psnr.numpy(), loss.numpy(), global_step.numpy())
             print('iter time {:.05f}'.format(dt))
