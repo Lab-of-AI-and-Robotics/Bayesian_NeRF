@@ -384,8 +384,8 @@ class NICE(nn.Module):
             # raw[..., 3] = fine_occ+middle_occ
             
             if self.uncert:
-                middle_occ = self.middle_decoder(p, c_grid)
-                middle_occ = middle_occ.squeeze(0)
+                # middle_occ = self.middle_decoder(p, c_grid)
+                # middle_occ = middle_occ.squeeze(0)
                 raw[..., -1] = fine_occ+middle_occ   # occupamcy
             else:
                 raw[..., -1] = fine_occ+middle_occ
