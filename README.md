@@ -73,6 +73,10 @@ cd NeRF_occupancy
 python run_nerf.py --config configs/synthetic.txt --expname ../../chair/4_occupancy --datadir ../../data/nerf_synthetic/chair_4
 cd ..
 
+cd NeRF_CF
+python run_nerf_uncertainty_NF.py --config configs/synthetic.txt --expname ../../chair/4_cf_nerf --datadir ../../data/nerf_synthetic/chair_4
+cd ..
+
 cd ..
 
 ```
@@ -93,7 +97,9 @@ cd ../..
 - Depth img
 ```bash
 cd NeRF_for_depth_img
-python <Method.py> --config configs/coarse.txt --expname <Output Path> --datadir <Dataset Path>
+python run_nerf_uncert_den.py --config configs/coarse.txt --expname <Output Path> --datadir <Dataset Path> # our density method
+python run_nerf_uncert_occu.py --config configs/coarse.txt --expname <Output Path> --datadir <Dataset Path> # our occupancy method
+python run_nerf_uncertainty_NF.py --config configs/coarse_CF.txt --expname <Output Path> --datadir <Dataset Path> # cf_nerf method
 cd ../..
 ```
 

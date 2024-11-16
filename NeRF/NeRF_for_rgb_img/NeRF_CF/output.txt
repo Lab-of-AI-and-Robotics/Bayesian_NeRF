@@ -1,0 +1,1 @@
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]

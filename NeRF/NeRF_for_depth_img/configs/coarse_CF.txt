@@ -1,0 +1,34 @@
+expname = blender_paper_lego
+basedir = ./logs
+datadir = ./data/lego
+dataset_type = blender
+
+use_viewdirs = True
+white_bkgd = False
+lrate_decay = 500
+
+N_samples = 64
+N_rand = 1024
+
+precrop_iters = 500
+precrop_frac = 0.5
+
+half_res = False
+
+n_flows = 4 
+h_alpha_size = 64 
+h_rgb_size = 64 
+K_samples = 32 
+n_hidden = 6 
+type_flows = 'triangular' 
+beta1 = 0.01 
+depth_lambda = 0.01 
+netdepth = 8 
+netwidth = 512 
+model = 'NeRF_Flows' 
+index_step = -1 
+is_train 
+
+i_weights = 5000
+i_img = 5000
+i_video = 5000
