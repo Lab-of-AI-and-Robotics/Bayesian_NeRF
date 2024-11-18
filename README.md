@@ -12,9 +12,9 @@ Sibaek Lee, Kyeongsu Gang, Seongbo Ha, Hyeonwoo Yu
 We present the Bayesian Neural Radiance Field (NeRF), which explicitly quantifies uncertainty in geometric volume structures without the need for additional networks, making it adept for challenging observations and uncontrolled images. 
 
 ## Video Result
-The results have been adjusted to account for the uncertainty in (Far Left) Base, (Left-Center) Color, (Center) Density, (Right-Center) Density and Color, (Far Right) Occupancy, and (Far Far Right) CF.
+The results have been adjusted to account for the uncertainty in (Far Left) Base, (Left-Center) Color, (Center) Density, (Right-Center) NeRF CF, (Far Right) Density and Color, and (Far Far Right) Occupancy.
 
-<img src="figs/4_ori.gif" width="128" height="128"/><img src="figs/4_col.gif" width="128" height="128"/><img src="figs/4_den.gif" width="128" height="128"/><img src="figs/4_dencol.gif" width="128" height="128"/><img src="figs/4_occu.gif" width="128" height="128"/><img src="figs/4_cf.gif" width="128" height="128"/>
+<img src="figs/4_ori.gif" width="128" height="128"/><img src="figs/4_col.gif" width="128" height="128"/><img src="figs/4_den.gif" width="128" height="128"/><img src="figs/4_cf.gif" width="128" height="128"/><img src="figs/4_dencol.gif" width="128" height="128"/><img src="figs/4_occu.gif" width="128" height="128"/>
 
 
 <br/> 
@@ -64,16 +64,16 @@ cd NeRF_density
 python run_nerf.py --config configs/synthetic.txt --expname ../../chair/4_density --datadir ../../data/nerf_synthetic/chair_4
 cd ..
 
+cd NeRF_CF
+python run_nerf_uncertainty_NF.py --config configs/synthetic.txt --expname ../../chair/4_cf_nerf --datadir ../../data/nerf_synthetic/chair_4
+cd ..
+
 cd NeRF_density_and_color
 python run_nerf.py --config configs/synthetic.txt --expname ../../chair/4_den_col --datadir ../../data/nerf_synthetic/chair_4
 cd ..
 
 cd NeRF_occupancy
 python run_nerf.py --config configs/synthetic.txt --expname ../../chair/4_occupancy --datadir ../../data/nerf_synthetic/chair_4
-cd ..
-
-cd NeRF_CF
-python run_nerf_uncertainty_NF.py --config configs/synthetic.txt --expname ../../chair/4_cf_nerf --datadir ../../data/nerf_synthetic/chair_4
 cd ..
 
 cd ..
