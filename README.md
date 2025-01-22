@@ -4,6 +4,8 @@
 
 Sibaek Lee, Kyeongsu Gang, Seongbo Ha, Hyeonwoo Yu
 
+<h3 align="center"> IEEE Robotics and Automation Letters, 2025 </h3>
+
 [Paper](https://arxiv.org/abs/2404.06727) | [Video](https://youtu.be/wp5jW4S_jqo)
 
 </div>
